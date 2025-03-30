@@ -15,7 +15,7 @@
 %union
 {
     int i;              /* integer */
-    float f;            /* integer */
+    float f;            /* float */
     char c;             /* char */
     int b;           /*  boolean */
     char *s;            /* string */
@@ -108,9 +108,8 @@ compound_statement : for_statement
                    ;
 
 
-assignment_statement : VARIABLE '=' expression
-                     | CONSTANT '=' expression
-                     ;
+assignment_statement    : VARIABLE '=' expression  
+                        ;
 
 print_statement : PRINT '(' expression ')' 
                 ;   
@@ -179,7 +178,7 @@ expression : expression '+' expression
            | CHAR
            | STRING                   
            | VARIABLE                  
-           | CONSTANT
+           | CONSTANT 
            ;
 %%
 /* End of Production Rules */
