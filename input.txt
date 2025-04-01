@@ -1,0 +1,12 @@
+if(i<3)
+{i='l'
+}else 
+i=5
+
+while(i<4)
+hh=3
+
+
+for(int i=8;i<50;i++)
+{i=3
+    print("lolo")}

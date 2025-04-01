@@ -1,7 +1,7 @@
 /* Part 1 : Definitions */
 %{
     #include <stdio.h>
-    #include "compiler.h"
+    // #include "compiler.h"
     #include <stdbool.h>
     
     int yylex(void);
@@ -16,7 +16,7 @@
 {
     int i;              /* integer */
     float f;            /* float */
-    char c;             /* char */
+    char *c;             /* char */
     int b;           /*  boolean */
     char *s;            /* string */
 }
@@ -49,7 +49,7 @@ Keyword     Description
 /* Keywords */
 %token IF                                                           /*  if conditions  */
 %token SWITCH CASE DEFAULT                                          /*  switch  */
-%token FOR WHILE DO BREAK CONTINUE                                  /*  loops */
+%token FOR WHILE DO BREAK CONTINUE REPEAT UNTILL                              /*  loops */
 %token CONST INT_TYPE FLOAT_TYPE BOOL_TYPE CHAR_TYPE STRING_TYPE    /*  data types */
 %token FUNCTION                                                     /*  functions */
 %token PRINT                                                        /*  Keyword for print */
@@ -66,8 +66,9 @@ Keyword     Description
 %left AND
 %left GREATER_EQUAL LESS_EQUAL EQUAL NOTEQUAL '<' '>'
 %left '+' '-'
-%left '*' '/'
+%left '*' '/' '%'
 %right NOT
+%left DECREMENT INCREMENT /* Post-increment (x++) and Post-decrement (x--) */
 
 
 /* Non Terminal Types */
@@ -90,25 +91,30 @@ statement : simple_statement
           | '{' statement_list '}'
           ;
 
-simple_statement : assignment_statement
-                 | declaration_statement
-                 | expression
-                 | function_call
-                 | print_statement
-                 | return_expression
+simple_statement : assignment_statement    {{ printf("Assignment statement\n"); fflush(stdout); }}
+                 | declaration_statement   {{ printf("Declaration statement\n"); fflush(stdout); }}
+                 | expression          {{ printf("Expression statement\n"); fflush(stdout); }}    
+                 | function_call     {{ printf("Function call statement\n"); fflush(stdout); }}
+                 | print_statement   {{ printf("Print statement\n"); fflush(stdout); }}
+                 | return_expression  {{ printf("Return statement\n"); fflush(stdout); }}
                  | BREAK
                  | CONTINUE
+                 | REPEAT
+                | UNTILL
                  ;
 
-compound_statement : for_statement
-                   | while_statement
-                   | if_statement
-                   | do_while_statement
-                   | switch_statement
+compound_statement : for_statement  {{ printf("For statement\n"); fflush(stdout); }}
+                   | while_statement  {{ printf("While statement\n"); fflush(stdout); }}
+                   | if_statement     {{ printf("If statement\n"); fflush(stdout); }}
+                   | do_while_statement   {{ printf("Do while statement\n"); fflush(stdout); }}
+                   | switch_statement    {{ printf("Switch statement\n"); fflush(stdout); }}
                    ;
 
 
 assignment_statement    : VARIABLE '=' expression  
+                      | expression DECREMENT
+           | expression INCREMENT
+
                         ;
 
 print_statement : PRINT '(' expression ')' 
@@ -125,15 +131,15 @@ data_type : INT_TYPE
           | FLOAT_TYPE
           | BOOL_TYPE
           | CHAR_TYPE
-          | STRING_TYPE
+          | STRING_TYPE 
           ;
 
-declaration_statement : CONST data_type CONSTANT '=' expression
-                      | data_type VARIABLE '=' expression
+declaration_statement : CONST data_type CONSTANT '=' expression 
+                      | data_type VARIABLE '=' expression      
                       ;
 
 
-for_statement : FOR '(' declaration_statement ';' expression ';' assignment_statement ')' statement
+for_statement : FOR '(' declaration_statement ';' expression ';' assignment_statement ')' statement 
               ;
 
 while_statement : WHILE '(' expression ')' statement
@@ -163,12 +169,14 @@ expression : expression '+' expression
            | expression '-' expression 
            | expression '*' expression 
            | expression '/' expression 
+           | expression '%' expression
            | '(' expression ')' 
            | NOT expression
            | expression AND expression
            | expression OR expression
            | expression GREATER_EQUAL expression
            | expression LESS_EQUAL expression
+           
            | expression EQUAL expression
            | expression NOTEQUAL expression
            | expression '<' expression
@@ -187,6 +195,31 @@ expression : expression '+' expression
 /* Part 5 : Functions and Main */
 int main(void)
 {
+    // Redirect input to a file
+    FILE *input_file = fopen("input.txt", "r");
+    if (input_file == NULL) {
+        perror("Failed to open input file");
+        return 1;
+    }
+
+    // Redirect output to a file
+    FILE *output_file = fopen("output.txt", "w");
+    if (output_file == NULL) {
+        perror("Failed to open output file");
+        fclose(input_file);
+        return 1;
+    }
+
+    // Set stdin and stdout to the corresponding files
+    freopen("input.txt", "r", stdin);   // Redirect input to file
+    freopen("output.txt", "w", stdout);  // Redirect output to file
+
+    // Start parsing
     yyparse();
+
+    // Close files
+    fclose(input_file);
+    fclose(output_file);
+
     return 0;
 }

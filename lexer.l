@@ -2,6 +2,14 @@
 %{
     #include "y.tab.h"
     #include <stdbool.h>
+    #include <stdio.h>
+    #include <string.h>
+
+    
+void yyerror(const char *s) {
+    fprintf(stderr, "Error: %s\n", s);
+}
+
 %}
 
 %option yylineno
@@ -11,11 +19,23 @@
 
 /* Part 2 : Regular Expressions */
 %%
-[0-9]+                       {  
+[1-9][0-9]*                       {  
                               yylval.i = atoi(yytext); 
                               return INTEGER; }
+0                            { 
+                              yylval.i = atoi(yytext); 
+                              return INTEGER; }
+(0|[1-9][0-9]*)\.[0-9]*     {    yylval.f = atof(yytext);
+                                return FLOAT; }
 
-(0|[1-9][0-9]*)\.[0-9]*     { return FLOAT; }
+'[^\\']' { 
+                                yylval.c = strdup(yytext); 
+                                return CHAR; }
+
+\"([^\\"]|\\.)*\" {
+                                yylval.s = strdup(yytext); 
+                                return STRING; }              
+
 
 "print"                     { return PRINT;  }
 "return"                    { return RETURN; }
@@ -24,7 +44,13 @@
 "false"                     { return BOOL; }
 
 
-[-()+*/{}<>=.^]             { return yytext[0]; }
+[-()+*/{}<>=.^%]             { return yytext[0]; }
+
+"["                 { return '['; }
+"]"                 { return ']'; }
+"++"                { return INCREMENT; }
+"--"                { return DECREMENT; }
+
 
 ">="                        { return GREATER_EQUAL; }
 "<="                        { return LESS_EQUAL; }
@@ -50,6 +76,9 @@
 "break"                     { return BREAK;    }
 "continue"                  { return CONTINUE; }
 
+"repeat"            { return REPEAT; }
+"until"             { return UNTILL; }
+
 "else"                      { return ELSE;    }
 "if"                        { return IF;      }
 
@@ -66,12 +95,13 @@
 
 
 [ \t\n]+  { /* ignore whitespace */ }
-
-.   { 
+ ;  {  return ';';}
+.    { 
     char msg[1024];
-    sprintf(msg, "Unknown character: %s", yytext);
+    snprintf(msg, sizeof(msg), "Unknown character: %s", yytext);
     yyerror(msg);
-  }
+}
+
 
 %%
 /* End of Regular Expressions */

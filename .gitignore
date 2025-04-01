@@ -1,2 +1,5 @@
 # Auto detect text files and perform LF normalization
 *.exe
+y.tab.c
+y.tab.h
+lex.yy.c
