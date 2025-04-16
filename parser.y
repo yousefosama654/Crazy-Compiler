@@ -146,10 +146,23 @@ simple_statement : assignment_statement ';'    {{ printf("Assignment statement\n
                
                  
                  ;
-PARAMTER_LIST: data_type VARIABLE ',' PARAMTER_LIST
-                | data_type VARIABLE
-                | 
-                ;
+PARAMTER_LIST:
+      PARAMETER ',' PARAMTER_LIST
+    | PARAMETER
+    | /* empty */
+    ;
+
+PARAMETER:
+      data_type VARIABLE '=' DEFAULT_VALUE
+    | data_type VARIABLE
+    ;
+
+DEFAULT_VALUE: INTEGER
+           | FLOAT
+           | CHAR
+           | STRING                   
+           |true_BOOL
+           |false_BOOL
 compound_statement : for_statement  {{ printf("For statement\n"); fflush(stdout); }}
                    | while_statement  {{ printf("While statement\n"); fflush(stdout); }}
                    | if_statement     {{ printf("If statement\n"); fflush(stdout); }}
@@ -165,6 +178,8 @@ compound_statement : for_statement  {{ printf("For statement\n"); fflush(stdout)
 assignment_statement    : VARIABLE '=' expression  
                       | VARIABLE DECREMENT
            | VARIABLE INCREMENT 
+           |INCREMENT VARIABLE
+           |DECREMENT VARIABLE
 
                         ;
 

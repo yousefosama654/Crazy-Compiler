@@ -12,6 +12,7 @@ int sum = x + a * 2;
 bool logic = true and false or  not false;
 float calc = (4.0 + 2.0) / 3.0;
 // If-Else Statement
+--sum;
 if (x > 3)
     print("x is greater than 3");
 else
@@ -37,7 +38,7 @@ do {
 } while (k < 2);
 
 // Function with return
-function int add(int a, int b) {
+function int add(int a=4, int b) {
     int result = a + b;
     return result;
 }
@@ -58,8 +59,10 @@ int option = 2;
 switch (option) {
     case 1:
         print("Option 1 selected");
+        break;
     case 2:
         print("Option 2 selected");
+        break;
     default:
         print("Default option");
 }
