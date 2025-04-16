@@ -24,6 +24,7 @@
     char *c;             /* char */
     int b;           /*  boolean */
     char *s;            /* string */
+    char *identifier;            /* Variable */
 }
 
 /* End of Unions */
@@ -45,12 +46,10 @@ Keyword     Description
 %token <i> INTEGER
 %token <f> FLOAT
 %token <c> CHAR
-%token <b> BOOL
 %token <s> STRING
-%token <s> VARIABLE
-%token <s> CONSTANT
-%token <s> true_BOOL
-%token <s> false_BOOL
+%token <identifier> VARIABLE
+%token <b> true_BOOL
+%token <b> false_BOOL
 
 
 /* Keywords */
@@ -178,6 +177,8 @@ switch_statement :  SWITCH '(' VARIABLE ')' '{' cases '}'
 cases : CASE INTEGER ':' statement_list cases
       | CASE true_BOOL ':' statement_list cases
       | CASE false_BOOL ':' statement_list cases
+      | CASE STRING ':' statement_list cases
+      | CASE CHAR ':' statement_list cases
       |
       ;
 
@@ -205,7 +206,6 @@ expression : expression '+' expression
            | CHAR
            | STRING                   
            | VARIABLE           
-           | CONSTANT 
            |true_BOOL
            |false_BOOL
            |function_call

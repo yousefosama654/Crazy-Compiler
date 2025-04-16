@@ -67,6 +67,24 @@ switch (option) {
         print("Default option");
 }
 
+switch (option) {
+    case "1":
+        print("Option 1 selected");
+    case "2":
+        print("Option 2 selected");
+    default:
+        print("Default option");
+}
+
+switch (option) {
+    case true:
+        print("Option 1 selected");
+    case false:
+        print("Option 2 selected");
+    default:
+        print("Default option");
+}
+
 // Break and Continue inside a loop
 int m = 0;
 while (m < 5) {
