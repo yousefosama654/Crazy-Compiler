@@ -3,9 +3,14 @@
     #include <stdio.h>
     // #include "compiler.h"
     #include <stdbool.h>
-    
+    extern int line;
     int yylex(void);
-    void yyerror(const char *);
+    void yyerror(const char *){
+        if(line==0)
+        printf("syntax error at line 1\n");
+      else   printf("syntax error at line %d\n", line);
+        fflush(stdout);
+    }
 %}
 /* End of Definitions */
 
@@ -44,19 +49,20 @@ Keyword     Description
 %token <s> STRING
 %token <s> VARIABLE
 %token <s> CONSTANT
+%token <s> true_BOOL
+%token <s> false_BOOL
 
 
 /* Keywords */
 %token IF                                                           /*  if conditions  */
 %token SWITCH CASE DEFAULT                                          /*  switch  */
-%token FOR WHILE DO BREAK CONTINUE REPEAT UNTILL                              /*  loops */
-%token CONST INT_TYPE FLOAT_TYPE BOOL_TYPE CHAR_TYPE STRING_TYPE    /*  data types */
+%token FOR WHILE DO BREAK CONTINUE                              /*  loops */
+%token CONST INT_TYPE FLOAT_TYPE BOOL_TYPE CHAR_TYPE STRING_TYPE  VOID  /*  data types */
 %token FUNCTION                                                     /*  functions */
 %token PRINT                                                        /*  Keyword for print */
 %nonassoc RETURN
 %nonassoc IFX                                                       /*  If statement precedance handling*/
 %nonassoc ELSE                                                      /*  else statement */
-%nonassoc ENDLINE 
 /* Operators */
 /* The order matters as we go down the precedence of the operator increases */
 /* left and right keywords gove  */
@@ -89,42 +95,54 @@ statement_list : statement
 statement : simple_statement
           | compound_statement
           | '{' statement_list '}'
+          |'{''}'
+            | ';'
           ;
 
-simple_statement : assignment_statement    {{ printf("Assignment statement\n"); fflush(stdout); }}
-                 | declaration_statement   {{ printf("Declaration statement\n"); fflush(stdout); }}
-                 | expression          {{ printf("Expression statement\n"); fflush(stdout); }}    
-                 | function_call     {{ printf("Function call statement\n"); fflush(stdout); }}
+simple_statement : assignment_statement ';'    {{ printf("Assignment statement\n"); fflush(stdout); }}
+                 | declaration_statement ';'  {{ printf("Declaration statement\n"); fflush(stdout); }}
+                 | expression   ';'       {{ printf("Expression statement\n"); fflush(stdout); }}    
                  | print_statement   {{ printf("Print statement\n"); fflush(stdout); }}
-                 | return_expression  {{ printf("Return statement\n"); fflush(stdout); }}
-                 | BREAK
-                 | CONTINUE
-                 | REPEAT
-                | UNTILL
+                 | BREAK';'
+                 | CONTINUE';'
+               
+                 
                  ;
-
+PARAMTER_LIST: data_type VARIABLE ',' PARAMTER_LIST
+                | data_type VARIABLE
+                | 
+                ;
 compound_statement : for_statement  {{ printf("For statement\n"); fflush(stdout); }}
                    | while_statement  {{ printf("While statement\n"); fflush(stdout); }}
                    | if_statement     {{ printf("If statement\n"); fflush(stdout); }}
                    | do_while_statement   {{ printf("Do while statement\n"); fflush(stdout); }}
                    | switch_statement    {{ printf("Switch statement\n"); fflush(stdout); }}
+                     |FUNCTION VOID VARIABLE'('PARAMTER_LIST')'     '{'   return_expression'}'
+                     |FUNCTION VOID VARIABLE'('PARAMTER_LIST')'     '{' statement_list  return_expression'}'
+                 | FUNCTION data_type VARIABLE '(' PARAMTER_LIST ')' '{'  return_expression '}'
+                 | FUNCTION data_type VARIABLE '(' PARAMTER_LIST ')' '{' statement_list return_expression '}'
                    ;
 
 
 assignment_statement    : VARIABLE '=' expression  
-                      | expression DECREMENT
-           | expression INCREMENT
+                      | VARIABLE DECREMENT
+           | VARIABLE INCREMENT 
 
                         ;
 
-print_statement : PRINT '(' expression ')' 
+print_statement : PRINT '(' expression ')' ';'
                 ;   
 
-return_expression : RETURN expression ENDLINE
-                  | RETURN ENDLINE
+return_expression : RETURN expression ';'
+                  | RETURN  ';'
+                  |
                   ;
+PARAMTER_LIST_CALL: expression ',' PARAMTER_LIST_CALL
+                | expression
+                | 
+                ;
 
-function_call : FUNCTION '(' expression ')'
+function_call : VARIABLE'('PARAMTER_LIST_CALL ')' 
             ;
 
 data_type : INT_TYPE
@@ -134,7 +152,7 @@ data_type : INT_TYPE
           | STRING_TYPE 
           ;
 
-declaration_statement : CONST data_type CONSTANT '=' expression 
+declaration_statement : CONST data_type VARIABLE '=' expression 
                       | data_type VARIABLE '=' expression      
                       ;
 
@@ -157,8 +175,9 @@ switch_statement :  SWITCH '(' VARIABLE ')' '{' cases '}'
                  |  SWITCH '(' VARIABLE ')' '{' cases  default_statement'}'
                  ;
 
-cases : CASE INTEGER ':' statement cases
-      | CASE BOOL ':' statement cases
+cases : CASE INTEGER ':' statement_list cases
+      | CASE true_BOOL ':' statement_list cases
+      | CASE false_BOOL ':' statement_list cases
       |
       ;
 
@@ -185,8 +204,12 @@ expression : expression '+' expression
            | FLOAT
            | CHAR
            | STRING                   
-           | VARIABLE                  
+           | VARIABLE           
            | CONSTANT 
+           |true_BOOL
+           |false_BOOL
+           |function_call
+           
            ;
 %%
 /* End of Production Rules */

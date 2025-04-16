@@ -1,12 +1,79 @@
-if(i<3)
-{i='l'
-}else 
-i=5
+// Variable Declarations and Assignments
+int x = 5;
+float y = 3.14;
+char c = 'a';
+string s = "hello";
+bool flag = true;
 
-while(i<4)
-hh=3
+// Constants
+const int a = 10;
+const string greeting = "Hi";
 
+// Arithmetic and Logical Expressions
+int sum = x + a * 2;
+bool logic = true and false or not false;
+float calc = (4.0 + 2.0) / 3.0;
 
-for(int i=8;i<50;i++)
-{i=3
-    print("lolo")}
+// If-Else Statement
+if (x > 3)
+    print("x is greater than 3");
+else
+    print("x is less than or equal to 3");
+
+// While Loop
+int i = 0;
+while (i < 3) {
+    print(i);
+    i++;
+}
+
+// For Loop
+for (int j = 0; j < 2; j++) {
+    print(j);
+}
+
+// Do-While Loop
+int k = 0;
+do {
+    print(k);
+    k++;
+} while (k < 2);
+
+// Function with return
+function int add(int a, int b) {
+    int result = a + b;
+    return result;
+}
+
+// Function without return
+function void sayHello() {
+    print("Hello from function");
+    return;
+}
+
+// Function Calls
+int z = add(4, 5);
+sayHello();
+print(z);
+
+// Switch-case
+int option = 2;
+switch (option) {
+    case 1:
+        print("Option 1 selected");
+    case 2:
+        print("Option 2 selected");
+    default:
+        print("Default option");
+}
+
+// Break and Continue inside a loop
+int m = 0;
+while (m < 5) {
+    if (m == 2)
+        continue;
+    if (m == 4)
+        break;
+    print(m);
+    m++;
+}

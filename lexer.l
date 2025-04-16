@@ -5,10 +5,8 @@
     #include <stdio.h>
     #include <string.h>
 
-    
-void yyerror(const char *s) {
-    fprintf(stderr, "Error: %s\n", s);
-}
+int line=0 ;
+void yyerror(const char *s) ;
 
 %}
 
@@ -40,11 +38,11 @@ void yyerror(const char *s) {
 "print"                     { return PRINT;  }
 "return"                    { return RETURN; }
 
-"true"                      { return BOOL; }
-"false"                     { return BOOL; }
+"true"                      { return true_BOOL; }
+"false"                     { return false_BOOL; }
 
 
-[-()+*/{}<>=.^%]             { return yytext[0]; }
+[-()+*/{}<>=.^%,:]             { return yytext[0]; }
 
 "["                 { return '['; }
 "]"                 { return ']'; }
@@ -66,7 +64,7 @@ void yyerror(const char *s) {
 "char"                      { return CHAR_TYPE;   }
 "string"                    { return STRING_TYPE; }
 "bool"                      { return BOOL_TYPE;   }
-
+"void"                     { return VOID;  }
 
 "for"                       { return FOR;     }
 
@@ -76,8 +74,6 @@ void yyerror(const char *s) {
 "break"                     { return BREAK;    }
 "continue"                  { return CONTINUE; }
 
-"repeat"            { return REPEAT; }
-"until"             { return UNTILL; }
 
 "else"                      { return ELSE;    }
 "if"                        { return IF;      }
@@ -90,11 +86,14 @@ void yyerror(const char *s) {
 
 
 
-[A-Z_][A-Z0-9_]*            { return CONSTANT;  }
 [a-zA-Z_][a-zA-Z0-9_]*      { return VARIABLE;  }
-
-
-[ \t\n]+  { /* ignore whitespace */ }
+   
+"//".*                     { /* ignore single line comments */ }
+"/*"([^*]|\*+[^*/])*\*+"/" { /* ignore multi-line comments */ }
+\n     {
+                                line++; 
+                                 }
+[ \t]+  { /* ignore whitespace */ }
  ;  {  return ';';}
 .    { 
     char msg[1024];
