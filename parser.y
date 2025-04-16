@@ -3,14 +3,53 @@
     #include <stdio.h>
     // #include "compiler.h"
     #include <stdbool.h>
+    #include<string.h>
+
+#include <stdlib.h>
     extern int line;
+    extern char* yytext;
     int yylex(void);
-    void yyerror(const char *){
-        if(line==0)
-        printf("syntax error at line 1\n");
-      else   printf("syntax error at line %d\n", line);
-        fflush(stdout);
+
+void yyerror(const char *s) {
+    FILE *file = fopen("input.txt", "r");
+    if (!file) {
+        perror("Failed to open input file in yyerror");
+        return;
     }
+
+    char buffer[1024];
+    char last_line[1024] = "";
+    int current_line = 1;
+    int last_valid_line = 0;
+
+    while (fgets(buffer, sizeof(buffer), file) && current_line < line) {
+        // Skip empty lines and comments
+        int i = 0;
+        while (buffer[i] == ' ' || buffer[i] == '\t') i++; // skip leading spaces
+
+        if (buffer[i] == '\n' || buffer[i] == '\0'||buffer[i] == '/') {
+            // empty line
+        }  else {
+             strncpy(last_line, buffer, sizeof(last_line) - 1);
+            last_line[sizeof(last_line) - 1] = '\0';  // Ensure null-termination
+            last_valid_line = current_line;
+
+        }
+        current_line++;
+    }
+
+    fclose(file);
+    
+    //check if last char in line is not semicolon
+    if(last_line[strlen(last_line)-2] != ';'){
+        printf("syntax error at line %d\n", last_valid_line);
+        printf("maybe a semicolon is missing\n");
+    }
+ else   printf("syntax error at line %d\n", line);
+    fflush(stdout);
+}
+
+
 %}
 /* End of Definitions */
 

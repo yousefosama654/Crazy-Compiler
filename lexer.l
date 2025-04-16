@@ -1,11 +1,12 @@
 /* Part 1 : Definitions */
 %{
-    #include "y.tab.h"
+     #include "y.tab.h"
     #include <stdbool.h>
     #include <stdio.h>
     #include <string.h>
+    #include <stdlib.h>
 
-int line=0 ;
+int line= 1;
 void yyerror(const char *s) ;
 
 %}
@@ -17,6 +18,7 @@ void yyerror(const char *s) ;
 
 /* Part 2 : Regular Expressions */
 %%
+
 [1-9][0-9]*                       {  
                               yylval.i = atoi(yytext); 
                               return INTEGER; }
@@ -87,14 +89,23 @@ void yyerror(const char *s) ;
 
 
 [a-zA-Z_][a-zA-Z0-9_]*      { return VARIABLE;  }
-   
+ ;  {  return ';';}
+
+
 "//".*                     { /* ignore single line comments */ }
 "/*"([^*]|\*+[^*/])*\*+"/" { /* ignore multi-line comments */ }
 \n     {
-                                line++; 
-                                 }
+    line+=1; 
+  
+     }
 [ \t]+  { /* ignore whitespace */ }
- ;  {  return ';';}
+
+
+
+
+
+
+
 .    { 
     char msg[1024];
     snprintf(msg, sizeof(msg), "Unknown character: %s", yytext);
