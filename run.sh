@@ -31,7 +31,7 @@ if [ $? -ne 0 ]; then
 fi
 
 # Run the parser and capture runtime errors
-./compiler.exe < in.txt 2> runtime_errors.log
+./compiler.exe < input.txt 2> runtime_errors.log
 if [ $? -ne 0 ]; then
     echo "❌ Runtime error! Check runtime_errors.log"
     cat runtime_errors.log
