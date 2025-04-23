@@ -32,7 +32,6 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
-# TODO: make this work like before 
 # Run the parser and capture runtime errors
 ./compiler.exe < input.txt 2> runtime_errors.log
 if [ $? -ne 0 ]; then
