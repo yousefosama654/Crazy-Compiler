@@ -9,7 +9,6 @@ using namespace std;
 
 void log_errors(int l, const char *msg)
 {
-
     fprintf(stderr, "Line %d: %s\n", l, msg);
     ifstream input("input.txt");
     if (!input.is_open())
@@ -20,7 +19,6 @@ void log_errors(int l, const char *msg)
 
     string lineText, lastValidLine;
     int currentLine = 1, lastValidLineNumber = 0;
-
     while (getline(input, lineText) && currentLine < l)
     {
         const char *raw = lineText.c_str();
@@ -32,7 +30,6 @@ void log_errors(int l, const char *msg)
             lastValidLine = lineText;
             lastValidLineNumber = currentLine;
         }
-
         currentLine++;
     }
 
@@ -46,5 +43,4 @@ void log_errors(int l, const char *msg)
             fprintf(stderr, "Note: maybe a semicolon is missing\n");
         }
     }
-
 }

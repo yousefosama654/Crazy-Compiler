@@ -317,7 +317,7 @@ void free_node(Node *p) {
   if (!p) return;
   if (p->type == OPERATION) {
     for (i = 0; i < p->opr.nops; i++)
-      free_node(p->opr.op[i]);
+        free_node(p->opr.op[i]);
   }
   free (p);
 }
