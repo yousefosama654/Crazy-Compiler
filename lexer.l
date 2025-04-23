@@ -1,117 +1,98 @@
-/* Part 1 : Definitions */
 %{
-     #include "y.tab.h"
+    #include "compiler.h"
+    #include "y.tab.h"
     #include <stdbool.h>
-    #include <stdio.h>
-    #include <string.h>
-    #include <stdlib.h>
-
-int line= 1;
-void yyerror(const char *s) ;
-
+    void yyerror (const char *emsg); 
+    int line=1;
 %}
 
 %option yylineno
-
 /* End of Definitions */
 
 
 /* Part 2 : Regular Expressions */
 %%
-
-[1-9][0-9]*                       {  
-                              yylval.i = atoi(yytext); 
+[0-9]+                       { /* INTEGERS */ 
+                              yylval.intValue = atoi(yytext); 
                               return INTEGER; }
-0                            { 
-                              yylval.i = atoi(yytext); 
-                              return INTEGER; }
-(0|[1-9][0-9]*)\.[0-9]*     {    yylval.f = atof(yytext);
-                                return FLOAT; }
 
-'[^\\']' { 
-                                yylval.c = strdup(yytext); 
-                                return CHAR; }
-
-\"([^\\"]|\\.)*\" {
-                                yylval.s = strdup(yytext); 
-                                return STRING; }              
-
+(0|[1-9][0-9]*)\.[0-9]*     { /* FLOATS */ 
+                              char * x = strdup(yytext); // to ensure null-terminated string
+                              yylval.floatValue = atof(x);
+                              return FLOAT; }
+"true"                      { /* BOOLS */ 
+                              // yylval.bVal = 1;
+                               return BOOL; }
+"false"                     {/* BOOLS */ 
+                              // yylval.bVal = 0;
+                               return BOOL; }
+"const"                     { return CONST;       }
+"int"                       { return INT_TYPE;    }
+"float"                     { return FLOAT_TYPE;  }
+"string"                    { return STRING_TYPE; }
+"bool"                      { return BOOL_TYPE;   }
+"void"                      { return VOID_TYPE;   }
 
 "print"                     { return PRINT;  }
 "return"                    { return RETURN; }
 
-"true"                      { return true_BOOL; }
-"false"                     { return false_BOOL; }
 
-
-[-()+*/{}<>=.^%,:]             { return yytext[0]; }
-
-"["                 { return '['; }
-"]"                 { return ']'; }
-"++"                { return INCREMENT; }
-"--"                { return DECREMENT; }
-
+[-()<>=+*/%{}.:;,]             { return yytext[0]; }
 
 ">="                        { return GREATER_EQUAL; }
-"<="                        { return LESS_EQUAL; }
-"=="                        { return EQUAL; } 
-"!="                        { return NOTEQUAL; }
-"and"                       { return AND; }
-"or"                        { return OR; }
-"not"                       { return NOT; }
+"<="                        { return LESS_EQUAL;    }
+"=="                        { return EQUAL;         } 
+"!="                        { return NOT_EQUAL;      }
 
-"const"                     { return CONST;  }
-"int"                       { return INT_TYPE;    }
-"float"                     { return FLOAT_TYPE;  }
-"char"                      { return CHAR_TYPE;   }
-"string"                    { return STRING_TYPE; }
-"bool"                      { return BOOL_TYPE;   }
-"void"                     { return VOID;  }
+"and"                       { return AND;           }
+"or"                        { return OR;            }
+"not"                       { return NOT;           }
 
-"for"                       { return FOR;     }
 
-"do"                        { return DO;     }
-"while"                     { return WHILE;  }
+ 
+
+"for"                       { return FOR;      }
+
+"do"                        { return DO;       }
+"while"                     { return WHILE;    }
+
+
+"if"                        { return IF;       }
+"else"                      { return ELSE;     }
+
+"switch"                    { return SWITCH;   }
+"case"                      { return CASE;     }
+
+"def"                       { return FUNCTION; }   
+"default"                   { return DEFAULT;  }
 
 "break"                     { return BREAK;    }
 "continue"                  { return CONTINUE; }
 
-
-"else"                      { return ELSE;    }
-"if"                        { return IF;      }
-
-"case"                      { return CASE;    }
-"switch"                    { return SWITCH;  }
-
-"function"                  { return FUNCTION; }   
-"default"                   { return DEFAULT; }
-
-
-
-[a-zA-Z_][a-zA-Z0-9_]*      { return VARIABLE;  }
- ;  {  return ';';}
-
-
-"//".*                     { /* ignore single line comments */ }
-"/*"([^*]|\*+[^*/])*\*+"/" { /* ignore multi-line comments */ }
-\n     {
-    line+=1; 
+[a-zA-Z_][a-zA-Z0-9_]*      { 
+                              yylval.sIndex = strdup(yytext);
+                              return VARIABLE;  }
   
-     }
-[ \t]+  { /* ignore whitespace */ }
+\".*\"                      {
+                              yylval.stringValue = strdup(yytext);
+                              return STRING;    }
 
+[ \t\r]+  { /* ignore whitespace */ }
+\n        { line++; }
 
+"#".*                        { /*Add a Comments*/
+                               printf("%s\n", yytext); 
+                                if (yytext[yyleng - 1] == '\n') 
+                                {
+                                    yylineno--;   
+                                 }
+                                }
 
-
-
-
-
-.    { 
+.   { 
     char msg[1024];
-    snprintf(msg, sizeof(msg), "Unknown character: %s", yytext);
+    printf(msg, "Syntax ERROR: Unknown character: %s", yytext);
     yyerror(msg);
-}
-
+  }
 
 %%
 /* End of Regular Expressions */

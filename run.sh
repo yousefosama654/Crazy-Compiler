@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# Clear the terminal
+clear
 # Enable debug mode to show each command
 set -x
 
@@ -23,13 +25,14 @@ if [ $? -ne 0 ]; then
 fi
 
 # Compile with GCC (capture errors)
-gcc y.tab.c lex.yy.c -o compiler.exe -ll -lm 2> gcc_errors.log
+g++ compiler.cpp  y.tab.c lex.yy.c -o compiler.exe -ll -lm 2> g++_errors.log
 if [ $? -ne 0 ]; then
-    echo "❌ GCC compilation failed! Check gcc_errors.log"
-    cat gcc_errors.log
+    echo "❌ G++ compilation failed! Check gcc_errors.log"
+    cat g++_errors.log
     exit 1
 fi
 
+# TODO: make this work like before 
 # Run the parser and capture runtime errors
 ./compiler.exe < input.txt 2> runtime_errors.log
 if [ $? -ne 0 ]; then
@@ -38,4 +41,4 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
-echo "✅ Compilation and execution completed successfully!"
+echo "✅ Compilation completed successfully!"

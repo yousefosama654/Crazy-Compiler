@@ -1,71 +1,43 @@
-/* Part 1 : Definitions */
 %{
+    //INCLUDES
     #include <stdio.h>
-    // #include "compiler.h"
+    #include "compiler.h"
     #include <stdbool.h>
-    #include<string.h>
+    //----------------------------------------------
+    //Function Prototypes
+    extern void remove_errors_file();
+    extern void log_errors(int,const char *);
+    /* TODO: implement this function and see what it can do */
+    // extern void check_unused_variables();
+    //----------------------------------------------
+    // we will define these functions here 
+    Node *construct_operation_node(int oper, int nops, ...);
+    Node *construct_identifier_node(char*, int = -1, int = -1);
+    Node *construct_constant_node(int, int, ...);
+    //----------------------------------------------
 
-#include <stdlib.h>
-    extern int line;
-    extern char* yytext;
+    void free_node(Node *p);
+    // int execute_all(Node *p, int = -1, int = -1, int = 0, ...);
+
+    //----------------------------------------------
     int yylex(void);
-
-void yyerror(const char *s) {
-    FILE *file = fopen("input.txt", "r");
-    if (!file) {
-        perror("Failed to open input file in yyerror");
-        return;
-    }
-
-    char buffer[1024];
-    char last_line[1024] = "";
-    int current_line = 1;
-    int last_valid_line = 0;
-
-    while (fgets(buffer, sizeof(buffer), file) && current_line < line) {
-        // Skip empty lines and comments
-        int i = 0;
-        while (buffer[i] == ' ' || buffer[i] == '\t') i++; // skip leading spaces
-
-        if (buffer[i] == '\n' || buffer[i] == '\0'||buffer[i] == '/') {
-            // empty line
-        }  else {
-             strncpy(last_line, buffer, sizeof(last_line) - 1);
-            last_line[sizeof(last_line) - 1] = '\0';  // Ensure null-termination
-            last_valid_line = current_line;
-
-        }
-        current_line++;
-    }
-
-    fclose(file);
-    
-    //check if last char in line is not semicolon
-    if(last_line[strlen(last_line)-2] != ';'){
-        printf("syntax error at line %d\n", last_valid_line);
-        printf("maybe a semicolon is missing\n");
-    }
- else   printf("syntax error at line %d\n", line);
-    fflush(stdout);
-}
-
-
+    void yyerror(const char *emsg);
+    extern int line;
+    //----------------------------------------------
 %}
 /* End of Definitions */
 
+/* Part 2 : Unions of yylval */
+%union {
+  int intValue;                          /* integer  */
+  float floatValue;                      /* double   */
+  char* stringValue;                     /* string   */
+  bool boolValue;                        /* boolean  */
 
-
-/* Part 2 : Unions */
-%union
-{
-    int i;              /* integer */
-    float f;            /* float */
-    char *c;             /* char */
-    int b;           /*  boolean */
-    char *s;            /* string */
-    char *identifier;            /* Variable */
+  char *sIndex;                       /* symbol table index */
+  char *varType;                      /* variable type      */
+  Node *nodePtr;                      /*   node             */
 }
-
 /* End of Unions */
 
 /* Part 3 : Tokens */
@@ -82,221 +54,283 @@ Keyword     Description
 
 
 /* Data types */
-%token <i> INTEGER
-%token <f> FLOAT
-%token <c> CHAR
-%token <s> STRING
-%token <identifier> VARIABLE
-%token <b> true_BOOL
-%token <b> false_BOOL
+%token <intValue> INTEGER
+%token <floatValue> FLOAT
+%token <stringValue> STRING
+%token <boolValue> BOOL
 
+%token <sIndex> VARIABLE
 
-/* Keywords */
-%token IF                                                           /*  if conditions  */
-%token SWITCH CASE DEFAULT                                          /*  switch  */
-%token FOR WHILE DO BREAK CONTINUE                              /*  loops */
-%token CONST INT_TYPE FLOAT_TYPE BOOL_TYPE CHAR_TYPE STRING_TYPE  VOID  /*  data types */
-%token FUNCTION                                                     /*  functions */
-%token PRINT                                                        /*  Keyword for print */
-%nonassoc RETURN
-%nonassoc IFX                                                       /*  If statement precedance handling*/
-%nonassoc ELSE                                                      /*  else statement */
-/* Operators */
-/* The order matters as we go down the precedence of the operator increases */
+/* Keywords of terminal symbols  to define CFG */
+%token IF                                                                /* Keywords for if statement */
+%token SWITCH CASE DEFAULT                                               /* Keywords for switch statement */
+%token FOR WHILE DO REPEAT BREAK CONTINUE                                       /* Keywords for loops */
+%token CONST INT_TYPE FLOAT_TYPE BOOL_TYPE STRING_TYPE  VOID_TYPE  DECLARE_ONLY           /* Keywords for data types */
+%token FUNCTION                                                          /* Keyword for function declaration */
+%token PRINT                                                             /* Keyword for print */
+%token RETURN 
+%token BLOCK
+
+/* to resolve dangling if else problem */
+%nonassoc IFX
+%nonassoc ELSE
+%nonassoc FUNC
+
+/* End of Tokens */
+
+/* precedence of Operators */
 /* left and right keywords gove  */
-
 %right '='
 %left OR
 %left AND
-%left GREATER_EQUAL LESS_EQUAL EQUAL NOTEQUAL '<' '>'
+%left GREATER_EQUAL LESS_EQUAL EQUAL NOT_EQUAL '>' '<'
 %left '+' '-'
 %left '*' '/' '%'
-%right NOT
-%left DECREMENT INCREMENT /* Post-increment (x++) and Post-decrement (x--) */
+%right NOT 
+%nonassoc NEGATIVE
 
 
 /* Non Terminal Types */
-
-/* End of Tokens */
+%type <nodePtr> statement statement_list  expression  rhs_nested_expression
+%type <nodePtr> declaration_statement  assignment_statement functions
+%type <nodePtr> for_statement for_declaration for_mid_stmt for_assignment   
+%type <nodePtr> while_statement if_statement do_while_statement switch_statement
+%type <nodePtr>  cases default_statement 
+%type <nodePtr> function_declaration parameter_list function_call return_statement comma_expressions 
+%type <intValue> data_type
 
 
 /* Part 4 : Production Rules */
 %%
 
-program : statement_list
+/* TODO: remember to make this function */
+program: functions      { /*last thing to finish check_unused_variables(); */}
         ;
 
-statement_list : statement
-               | statement_list statement
-               ;
-
-statement : simple_statement
-          | compound_statement
-          | '{' statement_list '}'
-          |'{''}'
-            | ';'
+functions: functions statement { /*execute_all($2); free_node($2);*/ }
+          | {$$ = NULL;}
           ;
 
-simple_statement : assignment_statement ';'    {{ printf("Assignment statement\n"); fflush(stdout); }}
-                 | declaration_statement ';'  {{ printf("Declaration statement\n"); fflush(stdout); }}
-                 | expression   ';'       {{ printf("Expression statement\n"); fflush(stdout); }}    
-                 | print_statement   {{ printf("Print statement\n"); fflush(stdout); }}
-                 | BREAK';'
-                 | CONTINUE';'
-               
-                 
-                 ;
-PARAMTER_LIST:
-      PARAMETER ',' PARAMTER_LIST
-    | PARAMETER
-    | /* empty */
-    ;
 
-PARAMETER:
-      data_type VARIABLE '=' DEFAULT_VALUE
-    | data_type VARIABLE
-    ;
+statement: ';'                                 { $$ = construct_operation_node(';', 2, NULL, NULL); }
+          | expression ';'                     { $$ = $1; }
+          | PRINT expression ';'               { $$ = construct_operation_node(PRINT, 1, $2); }
 
-DEFAULT_VALUE: INTEGER
-           | FLOAT
-           | CHAR
-           | STRING                   
-           |true_BOOL
-           |false_BOOL
-compound_statement : for_statement  {{ printf("For statement\n"); fflush(stdout); }}
-                   | while_statement  {{ printf("While statement\n"); fflush(stdout); }}
-                   | if_statement     {{ printf("If statement\n"); fflush(stdout); }}
-                   | do_while_statement   {{ printf("Do while statement\n"); fflush(stdout); }}
-                   | switch_statement    {{ printf("Switch statement\n"); fflush(stdout); }}
-                     |FUNCTION VOID VARIABLE'('PARAMTER_LIST')'     '{'   return_expression'}'
-                     |FUNCTION VOID VARIABLE'('PARAMTER_LIST')'     '{' statement_list  return_expression'}'
-                 | FUNCTION data_type VARIABLE '(' PARAMTER_LIST ')' '{'  return_expression '}'
-                 | FUNCTION data_type VARIABLE '(' PARAMTER_LIST ')' '{' statement_list return_expression '}'
-                   ;
+          | assignment_statement ';'           { $$ = $1; } 
+          | declaration_statement ';'          { $$ = $1; }
+          
+          | while_statement                    { $$ = $1; }
+          | do_while_statement                 { $$ = $1; }
+          | for_statement                      { $$ = $1; }
+          
+          | function_call                      { $$ = $1; }
+          | function_declaration               { $$ = $1;}
+          | return_statement                   { $$ = $1; }
 
-
-assignment_statement    : VARIABLE '=' expression  
-                      | VARIABLE DECREMENT
-           | VARIABLE INCREMENT 
-           |INCREMENT VARIABLE
-           |DECREMENT VARIABLE
-
-                        ;
-
-print_statement : PRINT '(' expression ')' ';'
-                ;   
-
-return_expression : RETURN expression ';'
-                  | RETURN  ';'
-                  |
-                  ;
-PARAMTER_LIST_CALL: expression ',' PARAMTER_LIST_CALL
-                | expression
-                | 
-                ;
-
-function_call : VARIABLE'('PARAMTER_LIST_CALL ')' 
-            ;
-
-data_type : INT_TYPE
-          | FLOAT_TYPE
-          | BOOL_TYPE
-          | CHAR_TYPE
-          | STRING_TYPE 
+          | if_statement                       { $$ = $1; }
+          | switch_statement                   { $$ = $1; }
+          | '{' statement_list '}'             { $$ = construct_operation_node(BLOCK, 1, $2); }
+          | BREAK ';'                          { $$ = construct_operation_node(BREAK, 1, NULL); }
+          | CONTINUE ';'                       { $$ = construct_operation_node(CONTINUE, 1, NULL); } 
           ;
+                    
+/* Functions */
+function_declaration: FUNCTION declaration_statement'('parameter_list')' '{'statement  return_statement'}'  {$$=construct_operation_node(FUNCTION,4,$2,$4,$7,$8);}
 
-declaration_statement : CONST data_type VARIABLE '=' expression 
-                      | data_type VARIABLE '=' expression      
-                      ;
-
-
-for_statement : FOR '(' declaration_statement ';' expression ';' assignment_statement ')' statement 
+parameter_list: declaration_statement ',' parameter_list          {$$=construct_operation_node(COMMA,2,$1,$3);}
+              | declaration_statement                              {$$=$1;}
+              |{$$=NULL;}
               ;
 
-while_statement : WHILE '(' expression ')' statement
+function_call : VARIABLE '(' comma_expressions ')' ';'   {$$=construct_operation_node(CALL,2,construct_identifier_node($1),$3);}
+            ; 
+
+return_statement: RETURN statement { $$ = construct_operation_node(RETURN, 1, $2); }
                 ;
+                
+comma_expressions: comma_expressions','expression { $$ = construct_operation_node(COMMA, 2, $1, $3); }
+                | expression                        { $$ = $1; }
+                |                                   { $$ = NULL; }
+                ;
+/* Loops */
+while_statement:
+  WHILE '(' expression ')' statement { $$ = construct_operation_node(WHILE, 2, $3, $5); }
+  ;
 
-do_while_statement : DO statement WHILE '(' expression ')'
-                   ;
+do_while_statement: DO statement_list REPEAT expression ';' { $$ = construct_operation_node(DO, 2, $2, $4); }
+                  ;
 
-/* to make the else belongs to the final if has more percedence */
-if_statement : IF '(' expression ')' statement %prec IFX
-             | IF '(' expression ')' statement ELSE statement
-             ;
+for_statement: FOR '(' for_declaration ';' for_mid_stmt ';' for_assignment ')' '{' statement_list '}' { $$ = construct_operation_node(FOR, 4, $3, $5, $7, $10); }
+  ;
 
-switch_statement :  SWITCH '(' VARIABLE ')' '{' cases '}'
-                 |  SWITCH '(' VARIABLE ')' '{' cases  default_statement'}'
+/* Conditional Statements */
+if_statement: IF '(' expression ')' '{' statement_list '}' %prec IFX { $$ = construct_operation_node(IF, 2, $3, $6); }
+            | IF '(' expression ')' '{' statement_list '}' ELSE '{' statement_list '}' { $$ = construct_operation_node(IF, 3, $3, $6, $10); }
+            ;
+
+
+default_statement:
+  DEFAULT ':' statement { $$ = construct_operation_node(DEFAULT, 1, $3); }
+  ;
+
+switch_statement :  SWITCH '(' VARIABLE ')' '{' cases '}'                           {$$=construct_operation_node(SWITCH,2,construct_identifier_node($3),$6);}
+                 |  SWITCH '(' VARIABLE ')' '{' cases  default_statement'}'          {$$=construct_operation_node(SWITCH,3,construct_identifier_node($3),$6,$7);}
                  ;
 
-cases : CASE INTEGER ':' statement_list cases
-      | CASE true_BOOL ':' statement_list cases
-      | CASE false_BOOL ':' statement_list cases
-      | CASE STRING ':' statement_list cases
-      | CASE CHAR ':' statement_list cases
-      |
+cases : CASE INTEGER ':' statement BREAK ';' cases                  {$$=construct_operation_node(CASE,4,construct_constant_node(INTEGER,INT_TYPE,$2),$4,construct_operation_node(BREAK,0),$7);}
+      | CASE INTEGER ':' statement  BREAK ';'                {$$=construct_operation_node(CASE,3,construct_constant_node(INTEGER,INT_TYPE,$2),$4,construct_operation_node(BREAK,0));}
       ;
 
-default_statement : DEFAULT ':' statement
 
-/* define them due to percedence */
-expression : expression '+' expression 
-           | expression '-' expression 
-           | expression '*' expression 
-           | expression '/' expression 
-           | expression '%' expression
-           | '(' expression ')' 
-           | NOT expression
-           | expression AND expression
-           | expression OR expression
-           | expression GREATER_EQUAL expression
-           | expression LESS_EQUAL expression
-           
-           | expression EQUAL expression
-           | expression NOTEQUAL expression
-           | expression '<' expression
-           | expression '>' expression     
-           | INTEGER
-           | FLOAT
-           | CHAR
-           | STRING                   
-           | VARIABLE           
-           |true_BOOL
-           |false_BOOL
-           |function_call
-           
-           ;
+
+for_mid_stmt:
+  { $$ = construct_operation_node(';', 2, NULL, NULL); }
+  | PRINT expression { $$ = construct_operation_node(PRINT, 1, $2); }
+  | declaration_statement { $$ = $1; }
+  | expression { $$ = $1; }
+  ;
+
+assignment_statement: VARIABLE '=' function_call %prec FUNC { $$ = construct_operation_node('=', 2, construct_identifier_node($1), $3); }
+                    | VARIABLE '=' rhs_nested_expression    { $$ = construct_operation_node('=', 2, construct_identifier_node($1), $3); }
+  ;
+
+for_assignment:
+  { $$ = construct_operation_node(';', 2, NULL, NULL); }
+  | assignment_statement { $$ = $1; }
+  ;
+
+declaration_statement: data_type VARIABLE                                             { $$ = construct_operation_node(DECLARE_ONLY, 1, construct_identifier_node($2, $1)); }
+                    | data_type VARIABLE '=' rhs_nested_expression                    { $$ = construct_operation_node('=', 2, construct_identifier_node($2, $1), $4); }
+                    | CONST data_type VARIABLE '=' rhs_nested_expression              { $$ = construct_operation_node('=', 2, construct_identifier_node($3, $2, CONST), $5); }
+                    ;
+
+data_type: INT_TYPE       { $$ = INT_TYPE; } 
+          | FLOAT_TYPE    { $$ = FLOAT_TYPE; }
+          | BOOL_TYPE     { $$ = BOOL_TYPE; }
+          | STRING_TYPE   { $$ = STRING_TYPE; }
+          | VOID_TYPE     { $$ = VOID_TYPE; }
+          ;
+
+for_declaration:
+  { $$ = construct_operation_node(';', 2, NULL, NULL); }
+  | declaration_statement { $$ = $1; }
+  ;
+
+rhs_nested_expression: expression                                          { $$ = $1; }
+                      | VARIABLE '=' rhs_nested_expression                 { $$ = construct_operation_node('=', 2, construct_identifier_node($1), $3); }
+                      | '(' VARIABLE '=' rhs_nested_expression ')'         { $$ = construct_operation_node('=', 2, construct_identifier_node($2), $4); }
+                      ;
+
+statement_list: statement                                                   { $$ = $1; }
+              | statement_list statement                                    { $$ = construct_operation_node(';', 2, $1, $2); }
+              ;
+
+
+expression: INTEGER                                          { $$ = construct_constant_node(INTEGER, INT_TYPE, $1); }
+          | FLOAT                                            { $$ = construct_constant_node(FLOAT, FLOAT_TYPE, $1); }
+          | STRING                                           { $$ = construct_constant_node(STRING, STRING_TYPE, $1); }
+          | VARIABLE                                         { $$ = construct_identifier_node($1); }
+          | BOOL                                             { $$ = construct_constant_node (BOOL, BOOL_TYPE, $1); }
+          | '-' expression %prec NEGATIVE                    { $$ = construct_operation_node(NEGATIVE, 1, $2); }
+          | NOT expression                                   { $$ = construct_operation_node(NOT, 1, $2); }
+          | expression '+' expression                        { $$ = construct_operation_node('+', 2, $1, $3); }
+          | expression '-' expression                        { $$ = construct_operation_node('-', 2, $1, $3); }
+          | expression '*' expression                        { $$ = construct_operation_node('*', 2, $1, $3); }
+          | expression '/' expression                        { $$ = construct_operation_node('/', 2, $1, $3); }
+          | expression '%' expression                        { $$ = construct_operation_node('%', 2, $1, $3); }
+          | expression '<' expression                        { $$ = construct_operation_node('<', 2, $1, $3); }
+          | expression '>' expression                        { $$ = construct_operation_node('>', 2, $1, $3); }
+          | expression GREATER_EQUAL expression              { $$ = construct_operation_node(GREATER_EQUAL, 2, $1, $3); }
+          | expression LESS_EQUAL expression                 { $$ = construct_operation_node(LESS_EQUAL, 2, $1, $3); }
+          | expression NOT_EQUAL expression                  { $$ = construct_operation_node(NOT_EQUAL, 2, $1, $3); }
+          | expression EQUAL expression                      { $$ = construct_operation_node(EQUAL, 2, $1, $3); }
+          | expression AND expression                        { $$ = construct_operation_node(AND, 2, $1, $3); }
+          | expression OR expression                         { $$ = construct_operation_node(OR, 2, $1, $3); }
+          | '(' expression ')'                               { $$ = $2; }          ;
+  /* End of Production Rules */
+
 %%
-/* End of Production Rules */
+/* type is the token in bison i defined before  */
+/* TODO: remove the type as long it is not used here  */
+Node *construct_constant_node(int type, int dataType, ...) {
+  va_list ap;
+  Node *p;
+  size_t nodeSize;
 
+  /* allocate Node */
+  nodeSize = SIZEOFNODE + sizeof(ConstantNode);
+  if ((p = (Node*)malloc(nodeSize)) == NULL)
+    yyerror("out of memory");
 
-/* Part 5 : Functions and Main */
-int main(void)
-{
-    // Redirect input to a file
-    FILE *input_file = fopen("input.txt", "r");
-    if (input_file == NULL) {
-        perror("Failed to open input file");
-        return 1;
-    }
+  /* copy information */
+  p->type = CONSTANT;
+  p->con.dataType = dataType;
+  va_start(ap, dataType);
+  p->con.value = va_arg(ap, ValueType);
+  va_end(ap);
+  return p;
+}
 
-    // Redirect output to a file
-    FILE *output_file = fopen("output.txt", "w");
-    if (output_file == NULL) {
-        perror("Failed to open output file");
-        fclose(input_file);
-        return 1;
-    }
+Node *construct_identifier_node(char* i, int dataType, int qualifier) {
+  Node *p;
+  size_t nodeSize;
+  /* allocate Node */
+  nodeSize = SIZEOFNODE + sizeof(IdentifierNode);
+  if ((p = (Node*)malloc(nodeSize)) == NULL)
+    yyerror("out of memory");
 
-    // Set stdin and stdout to the corresponding files
-    freopen("input.txt", "r", stdin);   // Redirect input to file
-    freopen("output.txt", "w", stdout);  // Redirect output to file
+  /* copy information */
+  p->type = IDENTIFIER;
+  p->id.name = strdup(i);
+  p->id.dataType = dataType;
+  p->id.qualifier = qualifier;
+  return p;
+}
 
-    // Start parsing
+Node *construct_operation_node(int oper, int nops, ...) {
+  va_list ap;
+  Node *p;
+  size_t nodeSize;
+  int i;
+  
+  /* allocate Node */
+  /*  (nops - 1) as it is aready there is one location in memory */
+  nodeSize = SIZEOFNODE + sizeof(OperationNode) + (nops - 1) * sizeof(Node*);
+  if ((p = (Node*)malloc(nodeSize)) == NULL)
+  {
+    yyerror("out of memory");
+  }
+
+  /* copy information */
+  p->type = OPERATION;
+  p->opr.symbol = oper;
+  p->opr.nops = nops;
+  va_start(ap, nops);
+  for (i = 0; i < nops; i++)
+    p->opr.op[i] = va_arg(ap, Node*);
+  va_end(ap);
+  return p;
+}
+
+void free_node(Node *p) {
+  int i;
+  if (!p) return;
+  if (p->type == OPERATION) {
+    for (i = 0; i < p->opr.nops; i++)
+      free_node(p->opr.op[i]);
+  }
+  free (p);
+}
+
+int main(void) {
     yyparse();
-
-    // Close files
-    fclose(input_file);
-    fclose(output_file);
-
+    /* log_symbol_table(); */
     return 0;
+}
+
+
+void yyerror(const char *msg) {
+  log_errors(line,msg);
+  /* log_symbol_table(); */
+  exit(1);
 }
