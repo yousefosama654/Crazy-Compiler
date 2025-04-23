@@ -1,9 +1,18 @@
-print(a or b);
-print(not a);
+#Define function 1
+def void test (int x,int y)
+{
+    print("function with arguments");
+    return;
+}
+#Call function
+int a = 1;
+int b = 2;
+test(a,b);
 
-#Comparators
-print(x < y);
-print(x > y);
-print(x <= y);
-print(x <= y);
-print(x != y);
+#Define function 2
+def void test1 ()
+{
+    print("function with no arguments");
+    return;
+}
+test1();
