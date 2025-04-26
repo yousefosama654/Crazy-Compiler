@@ -1,10 +1,12 @@
-push string "John Doe"
+push (string) "John Doe"
 pop name
-push int 30
+push (int) 30
 pop age
-push int age
+push age
 pop m_age
-push int 3
+push (int) 3
 pop ol
-push int age
+push age
 pop m_age
+push name
+print (string)

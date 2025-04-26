@@ -11,3 +11,6 @@ int y;
     int m_age=age;
    
 }
+
+
+print(name);

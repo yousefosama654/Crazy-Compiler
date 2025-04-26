@@ -129,7 +129,6 @@ void add_scope(Scope *scope)
     {
         symbol_table[scope->level] = vector<Symbol *>(); // create new scope in symbol table
     }
-    
 }
 
 int use_symbol(char *name, Scope scope)
@@ -156,22 +155,45 @@ int use_symbol(char *name, Scope scope)
     sprintf(msg, "Semantic ERROR: variable %s not declared in scope %d\n", name, scope.level);
     yyerror(msg);
 }
-void initilize_symbol(char *name)
+void initilize_symbol(char *name, Scope scope)
 {
     // check if varibable is already declared in the current scope or any parent scope
     // get all parent scopes
-    for(auto &entry : symbol_table)
+    Scope *current_scope = &scope;
+    while (current_scope != nullptr)
     {
-        for (auto &symbol : entry.second)
+        for (auto &symbol : symbol_table[current_scope->level])
         {
+
             if (symbol->name == name)
             {
                 symbol->isInitialized = true; // mark as used
                 return;
             }
         }
+        current_scope = current_scope->parent;
     }
-   
+}
+
+void check_if_const(char *name, Scope scope)
+{
+    // check if varibable is already declared in the current scope or any parent scope
+    // get all parent scopes
+    Scope *current_scope = &scope;
+    while (current_scope != nullptr)
+    {
+        for (auto &symbol : symbol_table[current_scope->level])
+        {
+            if (symbol->name == name && symbol->Qualfier == CONST)
+            {
+                char msg[1024];
+                sprintf(msg, "Semantic ERROR: variable %s is constant and cannot be modified\n", name);
+                yyerror(msg);
+                return;
+            }
+        }
+        current_scope = current_scope->parent;
+    }
 }
 
 void open_file()
@@ -196,19 +218,19 @@ int begin_compile(Node *p, Scope scope_level)
         {
 
         case INT_TYPE:
-            fprintf(fp, "push %s %d\n", get_type(p->con.dataType), p->con.value.intVal);
+            fprintf(fp, "push (%s) %d\n", get_type(p->con.dataType), p->con.value.intVal);
             return INT_TYPE;
             break;
         case FLOAT_TYPE:
-            fprintf(fp, "push %s %f\n", get_type(p->con.dataType), p->con.value.floatVal);
+            fprintf(fp, "push (%s) %f\n", get_type(p->con.dataType), p->con.value.floatVal);
             return FLOAT_TYPE;
             break;
         case BOOL_TYPE:
-            fprintf(fp, "push %s %d\n", get_type(p->con.dataType), p->con.value.boolVal);
+            fprintf(fp, "push (%s) %d\n", get_type(p->con.dataType), p->con.value.boolVal);
             return BOOL_TYPE;
             break;
         case STRING_TYPE:
-            fprintf(fp, "push %s %s\n", get_type(p->con.dataType), p->con.value.strVal);
+            fprintf(fp, "push (%s) %s\n", get_type(p->con.dataType), p->con.value.strVal);
             return STRING_TYPE;
             break;
         default:
@@ -219,9 +241,9 @@ int begin_compile(Node *p, Scope scope_level)
         break;
     case IDENTIFIER:
     {
-        int type=use_symbol(p->id.name, scope_level);
+        int type = use_symbol(p->id.name, scope_level);
 
-        fprintf(fp, "push %s %s\n", get_type(type), p->id.name);
+        fprintf(fp, "push %s\n", p->id.name);
         printf("type %s\n", get_type(type));
         return type;
         break;
@@ -240,7 +262,7 @@ int begin_compile(Node *p, Scope scope_level)
         case PRINT:
         {
             int op = begin_compile(p->opr.op[0], scope_level);
-            fprintf(fp, "print %s\n", get_type(op));
+            fprintf(fp, "print (%s)\n", get_type(op));
             return 0;
         }
         case BLOCK:
@@ -286,7 +308,7 @@ int begin_compile(Node *p, Scope scope_level)
             int ass = begin_compile(p->opr.op[1], scope_level);
             // int op1 = begin_compile(p->opr.op[0]);
             // check if op[0] is dec or id
-            begin_compile(p->opr.op[0], scope_level);
+            int t = begin_compile(p->opr.op[0], scope_level);
             if (p->opr.op[0]->type == DECLARATION)
             {
                 if (p->opr.op[0]->dec.dataType != ass)
@@ -295,21 +317,23 @@ int begin_compile(Node *p, Scope scope_level)
                     sprintf(msg, "Semantic ERROR: cannot assign %s to %s\n", get_type(ass), get_type(p->opr.op[0]->id.dataType));
                     yyerror(msg);
                 }
-                fprintf(fp,"pop %s\n", p->opr.op[0]->dec.symbol);
-                initilize_symbol(p->opr.op[0]->dec.symbol);
-
+                fprintf(fp, "pop %s\n", p->opr.op[0]->dec.symbol);
+                initilize_symbol(p->opr.op[0]->dec.symbol, scope_level);
             }
             else
             {
-                if (p->opr.op[0]->id.dataType != ass)
+                // check if identifer is constant
+                check_if_const(p->opr.op[0]->id.name, scope_level);
+                if (t != ass)
                 {
                     char msg[1024];
                     sprintf(msg, "Semantic ERROR: cannot assign %s to %s\n", get_type(ass), get_type(p->opr.op[0]->id.dataType));
                     yyerror(msg);
                 }
-                fprintf(fp,"pop %s\n", p->opr.op[0]->id.name);
-                initilize_symbol(p->opr.op[0]->id.name);
+                fprintf(fp, "pop %s\n", p->opr.op[0]->id.name);
+                initilize_symbol(p->opr.op[0]->id.name, scope_level);
             }
+
             return ass;
             break;
         }
