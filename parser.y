@@ -14,6 +14,7 @@
     Node *construct_operation_node(int oper, int nops, ...);
     Node *construct_identifier_node(char*, int = -1, int = -1);
     Node *construct_constant_node(int, int, ...);
+    Node *construct_decleration_node(char*, int, int = -1);
     //----------------------------------------------
 
     void free_node(Node *p);
@@ -23,7 +24,9 @@
     int yylex(void);
     void yyerror(const char *emsg);
     extern int line;
+    Scope p_current_scope (0,NULL); // Global variable to keep track of the current scope
     //----------------------------------------------
+    void print_ast(Node *node, int indent) ;
 %}
 /* End of Definitions */
 
@@ -107,7 +110,7 @@ Keyword     Description
 program: functions      { /*last thing to finish check_unused_variables(); */}
         ;
 
-functions: functions statement { /*execute_all($2); free_node($2);*/ }
+functions: functions statement { begin_compile($2,Scope (0, NULL));/*execute_all($2); free_node($2);*/ }
           | {$$ = NULL;}
           ;
 
@@ -199,9 +202,9 @@ for_assignment:
   | assignment_statement { $$ = $1; }
   ;
 
-declaration_statement: data_type VARIABLE                                             { $$ = construct_operation_node(DECLARE_ONLY, 1, construct_identifier_node($2, $1)); }
-                    | data_type VARIABLE '=' rhs_nested_expression                    { $$ = construct_operation_node('=', 2, construct_identifier_node($2, $1), $4); }
-                    | CONST data_type VARIABLE '=' rhs_nested_expression              { $$ = construct_operation_node('=', 2, construct_identifier_node($3, $2, CONST), $5); }
+declaration_statement: data_type VARIABLE                                             {     $$ = construct_decleration_node($2, $1); }
+                    | data_type VARIABLE '=' rhs_nested_expression                    { $$ = construct_operation_node('=', 2, construct_decleration_node($2, $1), $4); }
+                    | CONST data_type VARIABLE '=' rhs_nested_expression              { $$ = construct_operation_node('=', 2, construct_decleration_node($3, $2,CONST), $5); }
                     ;
 
 data_type: INT_TYPE       { $$ = INT_TYPE; } 
@@ -321,10 +324,18 @@ void free_node(Node *p) {
   }
   free (p);
 }
+extern FILE *yyin;  // Declare yyin so you can set it
 
 int main(void) {
-    yyparse();
-    /* log_symbol_table(); */
+ yyin = fopen("input.txt", "r");  // Open the input file
+    if (!yyin) {
+        perror("Failed to open input.txt");
+        return 1;
+    }
+
+    yyparse();  // Start parsing
+print_symbol_table();
+    fclose(yyin);  // Clean up
     return 0;
 }
 
@@ -334,3 +345,128 @@ void yyerror(const char *msg) {
   /* log_symbol_table(); */
   exit(1);
 }
+
+
+void print_ast(Node *node, int indent) {
+    if (node == NULL) return;
+
+    // Print indentation
+    for (int i = 0; i < indent; i++) printf("  ");
+
+    // Print node type
+    switch (node->type) {
+        case CONSTANT:
+            printf("Constant: ");
+            switch (node->con.dataType) {
+                case INT_TYPE: printf("%d (int)\n", node->con.value.intVal); break;
+                case FLOAT_TYPE: printf("%f (float)\n", node->con.value.floatVal); break;
+                case BOOL_TYPE: printf("%s (bool)\n", node->con.value.boolVal ? "true" : "false"); break;
+                case STRING_TYPE: printf("\"%s\" (string)\n", node->con.value.strVal); break;
+                default: printf("Unknown constant type\n");
+            }
+            break;
+
+        case IDENTIFIER:
+            printf("Identifier: %s\t", node->id.name);
+            printf("Data Type: ");
+            switch (node->id.dataType) {
+                case INT_TYPE: printf("int\t"); break;
+                case FLOAT_TYPE: printf("float\t"); break;
+                case BOOL_TYPE: printf("bool\t"); break;
+                case STRING_TYPE: printf("string\t"); break;
+                case VOID_TYPE: printf("void\t"); break;
+                default: printf("Unknown data type\t");
+            }
+            printf("Qualifier: ");
+            switch (node->id.qualifier) {
+                case CONST: printf("const\n"); break;
+                case INT_TYPE: printf("int\n"); break;
+                case FLOAT_TYPE: printf("float\n"); break;
+                case BOOL_TYPE: printf("bool\n"); break;
+                case STRING_TYPE: printf("string\n"); break;
+                default: printf("Unknown qualifier\n");
+            }
+            break;
+        case DECLARATION:
+            printf("Declaration: %s\t", node->dec.symbol);
+            printf("Data Type: ");
+            switch (node->dec.dataType) {
+                case INT_TYPE: printf("int\t"); break;
+                case FLOAT_TYPE: printf("float\t"); break;
+                case BOOL_TYPE: printf("bool\t"); break;
+                case STRING_TYPE: printf("string\t"); break;
+                case VOID_TYPE: printf("void\t"); break;
+                default: printf("Unknown data type\t");
+            }
+            printf("Qualifier: ");
+            switch (node->dec.qualifier) {
+                case CONST: printf("const\n"); break;
+                case INT_TYPE: printf("int\n"); break;
+                case FLOAT_TYPE: printf("float\n"); break;
+                case BOOL_TYPE: printf("bool\n"); break;
+                case STRING_TYPE: printf("string\n"); break;
+                default: printf("Unknown qualifier\n");
+            }
+            break;
+        case OPERATION:
+            printf("Operator: ");
+            switch (node->opr.symbol) {
+                case '+': printf("+\n"); break;
+                case '-': printf("-\n"); break;
+                case '*': printf("*\n"); break;
+                case '/': printf("/\n"); break;
+                case '%': printf("%%\n"); break;
+                case '=': printf("=\n"); break;
+                case PRINT: printf("PRINT\n"); break;
+                case IF: printf("IF\n"); break;
+                case WHILE: printf("WHILE\n"); break;
+                case DO: printf("DO-WHILE\n"); break;
+                case FOR: printf("FOR\n"); break;
+                case SWITCH: printf("SWITCH\n"); break;
+                case CASE: printf("CASE\n"); break;
+                case DEFAULT: printf("DEFAULT\n"); break;
+                case BLOCK: printf("BLOCK\n"); break;
+                case RETURN: printf("RETURN\n"); break;
+                case CALL: printf("FUNCTION CALL\n"); break;
+                case FUNCTION: printf("FUNCTION DECL\n"); break;
+                case COMMA: printf("COMMA\n"); break;
+                case NEGATIVE: printf("NEGATIVE\n"); break;
+                case NOT: printf("NOT\n"); break;
+                case AND: printf("AND\n"); break;
+                case OR: printf("OR\n"); break;
+                case EQUAL: printf("EQUAL\n"); break;
+                case NOT_EQUAL: printf("NOT_EQUAL\n"); break;
+                case GREATER_EQUAL: printf("GREATER_EQUAL\n"); break;
+                case LESS_EQUAL: printf("LESS_EQUAL\n"); break;
+                case '<': printf("<\n"); break;
+                case '>': printf(">\n"); break;
+                case BREAK: printf("BREAK\n"); break;
+                case CONTINUE: printf("CONTINUE\n"); break;
+                case ';': printf("SEQUENCE (;)\n"); break;
+                default: printf("Unknown operation: %d\n", node->opr.symbol);
+            }
+
+            for (int i = 0; i < node->opr.nops; ++i) {
+                print_ast(node->opr.op[i], indent + 1);
+            }
+            break;
+    }
+}
+
+
+    Node *construct_decleration_node(char* name, int type, int qualifier) {
+        Node *p;
+        size_t nodeSize;
+        /* allocate Node */
+        nodeSize = SIZEOFNODE + sizeof(DeclerationNode);
+        if ((p = (Node*)malloc(nodeSize)) == NULL)
+            yyerror("out of memory");
+
+        /* copy information */
+        p->type = DECLARATION;
+        p->dec.symbol = strdup(name);
+        p->dec.dataType = type;
+        p->dec.qualifier = qualifier;
+        return p;
+    }
+    

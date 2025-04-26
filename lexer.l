@@ -21,10 +21,10 @@
                               yylval.floatValue = atof(x);
                               return FLOAT; }
 "true"                      { /* BOOLS */ 
-                              // yylval.bVal = 1;
+                              yylval.boolValue = 1;
                                return BOOL; }
 "false"                     {/* BOOLS */ 
-                              // yylval.bVal = 0;
+                              yylval.boolValue = 0;
                                return BOOL; }
 "const"                     { return CONST;       }
 "int"                       { return INT_TYPE;    }

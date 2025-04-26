@@ -1,0 +1,10 @@
+push string "John Doe"
+pop name
+push int 30
+pop age
+push int age
+pop m_age
+push int 3
+pop ol
+push int age
+pop m_age
