@@ -9,8 +9,10 @@
 using namespace std;
 extern int line;
 static int label = 0;
+static int level = 0;
 void log_errors(int l, const char *msg)
 {
+    printf("Error: %s at line %d\n", msg, l);
     FILE *ef = fopen("./outputs/error.txt", "w");
     if (ef == NULL)
     {
@@ -48,8 +50,19 @@ void log_errors(int l, const char *msg)
     if (!lastValidLine.empty())
     {
         const char *str = lastValidLine.c_str();
-        size_t len = strlen(str);
-        if (len >= 2 && str[len - 2] != ';')
+        // trim str
+        int len = strlen(str);
+        while (len > 0 && (str[len - 1] == ' ' || str[len - 1] == '\t'))
+        {
+            len--;
+        }
+        string trimmedStr = string(str, len);
+
+        len = trimmedStr.length();
+
+        // check if the last character is a semicolon
+
+        if (len >= 2 && trimmedStr[len - 1] != ';')
         {
             fprintf(ef, "syntax error at line %d\n", lastValidLineNumber);
             fprintf(ef, "Note: maybe a semicolon \n");
@@ -81,8 +94,8 @@ char *get_type(int type)
     }
 }
 FILE *fp = NULL;
-map<int, vector<Symbol *>> symbol_table; // symbol table
-
+map<int, vector<Symbol *>> symbol_table;           // symbol table
+map<int, vector<SymbolFunction *>> function_table; // function table
 void add_symbol(char *name, int type, int qualifier, Scope scope, bool isused, bool isInitialized)
 {
 
@@ -106,7 +119,6 @@ void add_symbol(char *name, int type, int qualifier, Scope scope, bool isused, b
                 return;
             }
         }
-
         current_scope = current_scope->parent;
     }
 
@@ -119,7 +131,38 @@ void add_symbol(char *name, int type, int qualifier, Scope scope, bool isused, b
     s->isInitialized = isInitialized;
     symbol_table[scope.level].push_back(s);
 }
+void add_func(char *name, int type, vector<Symbol> argTypes, Scope scope)
+{
+    // check if global symbol already exists
+    if (function_table.find(0) == function_table.end())
+    {
+        function_table[0] = vector<SymbolFunction *>();
+    }
+    // heck if varibable is already declared in the current scope or any parent scope
+    // get all parent scopes
+    Scope *current_scope = &scope;
+    while (current_scope != nullptr)
+    {
+        for (auto &symbol : function_table[current_scope->level])
+        {
+            if (symbol->name == name)
+            {
+                char msg[1024];
+                sprintf(msg, "Semantic ERROR: function %s already declared in scope %d\n", name, scope.level);
+                yyerror(msg);
+                return;
+            }
+        }
+        current_scope = current_scope->parent;
+    }
 
+    SymbolFunction *s = new SymbolFunction;
+    s->name = name;
+    s->returnType = type;
+    s->argTypes = argTypes;
+    s->used = false;
+    function_table[scope.level].push_back(s);
+}
 void add_scope(Scope *scope)
 {
     // check if global symbol already exists
@@ -210,22 +253,83 @@ void print_symbol_table()
         fprintf(sf, "Error: couldn't open symbol.txt for writing.\n");
         return;
     }
-    fprintf(sf, "Symbol Table:\n");
+    fprintf(sf, "Variables:\n");
     for (auto &entry : symbol_table)
     {
         int scope = entry.first;
         vector<Symbol *> symbols = entry.second;
-        fprintf(sf, "Scope %d:\n", scope);
+        bool f=0;
         for (auto &symbol : symbols)
         {
-            fprintf(sf, "Name: %s, Type: %s, isConst: %d isUsed: %d, isIntilized: %d\n", symbol->name.c_str(), get_type(symbol->type), symbol->Qualfier == CONST, symbol->used, symbol->isInitialized);
+            if(f==0){
+                fprintf(sf, "Scope %d:\n", scope);
+                f=1;
+            }
+            fprintf(sf, "\tName: %s, Type: %s, isConst: %d isUsed: %d, isIntilized: %d\n", symbol->name.c_str(), get_type(symbol->type), symbol->Qualfier == CONST, symbol->used, symbol->isInitialized);
+        }
+
+    }
+    fprintf(sf, "\nFunctions:\n");
+    for (auto &entry : function_table)
+    {
+        int scope = entry.first;
+        vector<SymbolFunction *> symbols = entry.second;
+        // fprintf(sf, "Scope %d:\n", scope);
+        for (auto &symbol : symbols)
+        {
+            fprintf(sf, "Name: %s, Return Type: %s\n", symbol->name.c_str(), get_type(symbol->returnType));
+            for (auto &arg : symbol->argTypes)
+            {
+                fprintf(sf, "\tArg Name: %s, Type: %s\n", arg.name.c_str(), get_type(arg.type));
+            }
         }
     }
     fclose(sf);
 }
 
-
-int begin_compile(Node *p, Scope scope_level, bool flag, int brk, int cont)
+void add_argument(char *name, char *argName, int type, int qualifier, Scope scope)
+{
+    printf("add argument %s %s\n", name, argName);
+    Scope *current_scope = &scope;
+    while (current_scope != nullptr)
+    {
+        for (auto &symbol : function_table[current_scope->level])
+        {
+            if (symbol->name == name)
+            {
+                Symbol s;
+                s.name = argName;
+                s.type = type;
+                s.Qualfier = qualifier;
+                symbol->argTypes.push_back(s);
+                return;
+            }
+        }
+        current_scope = current_scope->parent;
+    }
+}
+int check_function(char *name, Scope scope)
+{
+    // check if varibable is already declared
+    // get all parent scopes
+    Scope *current_scope = &scope;
+    while (current_scope != nullptr)
+    {
+        for (auto &symbol : function_table[current_scope->level])
+        {
+            if (symbol->name == name)
+            {
+                symbol->used = true; // mark as used
+                return symbol->returnType; // return type
+            }
+        }
+        current_scope = current_scope->parent;
+    }
+    char msg[1024];
+    sprintf(msg, "Semantic ERROR: function %s not declared in scope %d\n", name, scope.level);
+    yyerror(msg);
+}
+int begin_compile(Node *p, Scope scope_level, bool flag, int brk, int cont, int isFunction, char *funcName)
 {
     // open action files
     open_file();
@@ -273,10 +377,15 @@ int begin_compile(Node *p, Scope scope_level, bool flag, int brk, int cont)
     }
     case DECLARATION:
     {
+        if (isFunction == 1)
+        {
+            add_argument(funcName, p->dec.symbol, p->dec.dataType, p->dec.qualifier, scope_level);
+        }
         add_symbol(p->dec.symbol, p->dec.dataType, p->dec.qualifier, scope_level, false, false);
         return p->dec.dataType;
         break;
     }
+
     case OPERATION:
     {
         switch (p->opr.symbol)
@@ -284,26 +393,39 @@ int begin_compile(Node *p, Scope scope_level, bool flag, int brk, int cont)
 
         case PRINT:
         {
-            int op = begin_compile(p->opr.op[0], scope_level,0,brk,cont);
+            int op = begin_compile(p->opr.op[0], scope_level, 0, brk, cont, isFunction, funcName);
             fprintf(fp, "print (%s)\n", get_type(op));
             return 0;
+            break;
+        }
+        case CALL:
+        {
+            ///check if function exists in the symbol table
+           int t= check_function(p->opr.op[0]->id.name, scope_level);
+            fprintf(fp, "call %s\n", p->opr.op[0]->id.name);
+           return t;
             break;
         }
         case BLOCK:
         {
             // open new scope
-            Scope *new_scope = new Scope(scope_level.level + 1, &scope_level);
+            Scope *new_scope = new Scope(++level, &scope_level);
             add_scope(new_scope);
             // compile the block
             for (int i = 0; i < p->opr.nops; i++)
             {
-                begin_compile(p->opr.op[i], *new_scope,0,brk,cont);
+                begin_compile(p->opr.op[i], *new_scope, 0, brk, cont, isFunction, funcName);
             }
             break;
         }
+        case COMMA:
+
+            begin_compile(p->opr.op[0], scope_level, 0, brk, cont, isFunction, funcName);
+            begin_compile(p->opr.op[1], scope_level, 0, brk, cont, isFunction, funcName);
+            break;
         case NOT:
         {
-            int op = begin_compile(p->opr.op[0], scope_level,0,brk,cont);
+            int op = begin_compile(p->opr.op[0], scope_level, 0, brk, cont, isFunction, funcName);
             if (op != BOOL_TYPE)
             {
                 char msg[1024];
@@ -317,13 +439,14 @@ int begin_compile(Node *p, Scope scope_level, bool flag, int brk, int cont)
         case ';':
         {
             for (int i = 0; i < p->opr.nops; i++)
-                begin_compile(p->opr.op[i], scope_level,0,brk,cont);
+                begin_compile(p->opr.op[i], scope_level, 0, brk, cont, isFunction, funcName);
+            return VOID_TYPE;
             break;
         }
         case IF:
         {
 
-            int if_expr = begin_compile(p->opr.op[0], scope_level,0,brk,cont);
+            int if_expr = begin_compile(p->opr.op[0], scope_level, 0, brk, cont, isFunction, funcName);
             if (if_expr != BOOL_TYPE)
             {
                 char msg[1024];
@@ -331,7 +454,7 @@ int begin_compile(Node *p, Scope scope_level, bool flag, int brk, int cont)
                 yyerror(msg);
             }
             // if
-            Scope *new_scope = new Scope(scope_level.level + 1, &scope_level);
+            Scope *new_scope = new Scope(++level, &scope_level);
             add_scope(new_scope);
             if (p->opr.nops == 2)
             {
@@ -339,7 +462,7 @@ int begin_compile(Node *p, Scope scope_level, bool flag, int brk, int cont)
                 int end = label;
                 fprintf(fp, "jz L%d\n", label++);
 
-                begin_compile(p->opr.op[1], *new_scope,0,brk,cont);
+                begin_compile(p->opr.op[1], *new_scope, 0, brk, cont, isFunction, funcName);
 
                 fprintf(fp, "L%d\n", end);
             }
@@ -347,11 +470,11 @@ int begin_compile(Node *p, Scope scope_level, bool flag, int brk, int cont)
             {
                 int end = label;
                 fprintf(fp, "jz L%d\n", label++);
-                begin_compile(p->opr.op[1], *new_scope,0,brk,cont);
+                begin_compile(p->opr.op[1], *new_scope, 0, brk, cont, isFunction, funcName); // if body
                 fprintf(fp, "L%d\n", end);
-                Scope *new_scope2 = new Scope(scope_level.level + 2, &scope_level);
+                Scope *new_scope2 = new Scope(++level, &scope_level);
                 add_scope(new_scope2);
-                begin_compile(p->opr.op[2], *new_scope2,0,brk,cont);
+                begin_compile(p->opr.op[2], *new_scope2, 0, brk, cont, isFunction, funcName); // else body
             }
             return 0;
             break;
@@ -359,13 +482,13 @@ int begin_compile(Node *p, Scope scope_level, bool flag, int brk, int cont)
         case FOR:
         {
 
-            Scope *new_scope = new Scope(scope_level.level + 1, &scope_level);
+            Scope *new_scope = new Scope(++level, &scope_level);
             add_scope(new_scope);
-            begin_compile(p->opr.op[0], scope_level,0,brk,cont); // initialize
+            begin_compile(p->opr.op[0], scope_level, 0, brk, cont, isFunction, funcName); // initialize
             int l1 = label++;
             fprintf(fp, "L%d\n", l1);
 
-            int cond = begin_compile(p->opr.op[1], scope_level,0,brk,cont); // condition
+            int cond = begin_compile(p->opr.op[1], scope_level, 0, brk, cont, isFunction, funcName); // condition
             if (cond != BOOL_TYPE)
             {
                 yyerror("Semantic ERROR: Condition must be of a BOOL Value");
@@ -374,10 +497,10 @@ int begin_compile(Node *p, Scope scope_level, bool flag, int brk, int cont)
             int l2 = label++;
             fprintf(fp, "jz L%d\n", l2);
 
-            begin_compile(p->opr.op[3], *new_scope,0,l2,l1);  // body
-            begin_compile(p->opr.op[2], scope_level,0,brk,cont); // next iter inc/dec
-            fprintf(fp, "jmp L%d\n", l1);             // jump to condition
-            fprintf(fp, "L%d\n", l2);                 // end of loop
+            begin_compile(p->opr.op[3], *new_scope, 0, l2, l1, isFunction, funcName);     // body
+            begin_compile(p->opr.op[2], scope_level, 0, brk, cont, isFunction, funcName); // next iter inc/dec
+            fprintf(fp, "jmp L%d\n", l1);                                                 // jump to condition
+            fprintf(fp, "L%d\n", l2);                                                     // end of loop
             break;
         }
         case BREAK:
@@ -390,7 +513,108 @@ int begin_compile(Node *p, Scope scope_level, bool flag, int brk, int cont)
             fprintf(fp, "jmp L%d\n", brk);
             break;
         }
+        /*SWITCH CASE*/
+        case SWITCH:
+        {
 
+            int endLabel = label++;     // Unique end label for switch
+            int defaultLabel = label++; // Default case label
+            NodeTypeTag *switch_var = p->opr.op[0];
+
+            // pop the switch variable
+
+            NodeTypeTag *n = p->opr.op[1];
+            int i = 1;
+            while (n->opr.symbol == CASE)
+            {
+                bool last_case = (n->opr.nops == 3); // CASE with 3 operands is last in the list
+
+                fprintf(fp, "L%d:\n", label);
+
+                fprintf(fp, "push %s\n", switch_var->id.name);
+
+                begin_compile(n->opr.op[0], scope_level, 0, brk, cont, isFunction, funcName); // push the case constant
+                fprintf(fp, "\tcompEQ\n");
+
+                if (last_case)
+                {
+                    if (p->opr.nops == 3) // switch has a default case
+                    {
+                        fprintf(fp, " jz L%d\n", defaultLabel);
+                    }
+                    else
+                    {
+                        fprintf(fp, "jz L%d\n", endLabel);
+                    }
+                }
+                else
+                {
+                    fprintf(fp, "jz L%d\n", label + 1);
+                }
+                Scope *new_scope = new Scope(++level, &scope_level);
+                add_scope(new_scope);
+                printf("new scope parent %d\n", new_scope->parent->level);
+                printf("curr scope parent %d\n", new_scope->level);
+                begin_compile(n->opr.op[1], *new_scope, 0, brk, cont, isFunction, funcName); // execute case body
+                fprintf(fp, "jmp L%d\n", endLabel);
+
+                if (last_case)
+                {
+                    break;
+                }
+                else
+                {
+                    n = n->opr.op[3]; // move to next case
+                    label++;
+                }
+            }
+
+            if (p->opr.nops == 3) // handle default if exists
+            {
+                fprintf(fp, "L%d:\n", defaultLabel);
+                Scope *new_scope = new Scope(++level, &scope_level);
+                add_scope(new_scope);
+                begin_compile(p->opr.op[2]->opr.op[0], *new_scope, 0, brk, cont, isFunction, funcName); // default case body
+                fprintf(fp, "jmp L%d\n", endLabel);
+            }
+
+            fprintf(fp, "L%d:\n", endLabel);
+
+            break;
+        }
+        case FUNCTION:
+        {
+            printf("function %s %s\n", p->opr.op[0]->id.name, get_type(p->opr.op[0]->dec.dataType));
+            fprintf(fp, "proc %s\n", p->opr.op[0]->id.name);
+            Scope *new_scope = new Scope(++level, &scope_level);
+            add_scope(new_scope);
+            add_func(p->opr.op[0]->id.name, p->opr.op[0]->dec.dataType, vector<Symbol>(), scope_level); // add function to symbol table
+            if (p->opr.op[1])
+            {
+                begin_compile(p->opr.op[1], *new_scope, 0, brk, cont, 1, p->opr.op[0]->id.name); // function arguments
+            }
+          
+            begin_compile(p->opr.op[2], *new_scope, 0, brk, cont, isFunction, funcName);               // function body
+            int ret_typ = begin_compile(p->opr.op[3], *new_scope, 0, brk, cont, isFunction, funcName); // return statement
+            if (ret_typ != p->opr.op[0]->dec.dataType)
+            {
+                char msg[1024];
+                sprintf(msg, "Semantic ERROR: function %s return type mismatch\n", p->opr.op[0]->id.name);
+                yyerror(msg);
+            }
+            return ret_typ;
+            break;
+        }
+        case RETURN:
+
+        {
+
+            int t = begin_compile(p->opr.op[0], scope_level, 0, brk, cont, isFunction, funcName); // return statement
+            fprintf(fp, "ret\n");
+            fprintf(fp, "endproc\t\n");
+            return t;
+            break;
+        }
         case CONTINUE:
         {
             printf("continue %d\n", cont);
@@ -404,19 +628,19 @@ int begin_compile(Node *p, Scope scope_level, bool flag, int brk, int cont)
         }
         case DO:
         {
-            Scope *new_scope = new Scope(scope_level.level + 1, &scope_level);
+            Scope *new_scope = new Scope(++level, &scope_level);
             int l1 = label++;
             int l2 = label++;
             fprintf(fp, "L%d\n", l1);
 
-            begin_compile(p->opr.op[0], *new_scope,0,l2,l1);             // body
-            int cond = begin_compile(p->opr.op[1], scope_level,0,brk,cont); // condition
+            begin_compile(p->opr.op[0], *new_scope, 0, l2, l1, isFunction, funcName);                // body
+            int cond = begin_compile(p->opr.op[1], scope_level, 0, brk, cont, isFunction, funcName); // condition
             if (cond != BOOL_TYPE)
             {
                 yyerror("Semantic ERROR: Condition must be of a BOOL value");
             }
             fprintf(fp, "jnz L%d\n", l1);
-          
+
             fprintf(fp, "L%d\n", l2);
 
             break;
@@ -424,11 +648,11 @@ int begin_compile(Node *p, Scope scope_level, bool flag, int brk, int cont)
         case WHILE:
         {
 
-            Scope *new_scope = new Scope(scope_level.level + 1, &scope_level);
+            Scope *new_scope = new Scope(++level, &scope_level);
             int l1 = label;
             fprintf(fp, "L%d\n", label++);
 
-            int type1 = begin_compile(p->opr.op[0], scope_level,0,brk,cont); // condition
+            int type1 = begin_compile(p->opr.op[0], scope_level, 0, brk, cont, isFunction, funcName); // condition
             if (type1 != BOOL_TYPE)
             {
                 yyerror("semantic ERROR: Conditions must be of a BOOL Value");
@@ -436,7 +660,7 @@ int begin_compile(Node *p, Scope scope_level, bool flag, int brk, int cont)
             int l2 = label++;
             fprintf(fp, "jz L%d\n", l2);
 
-            begin_compile(p->opr.op[1], scope_level,0,l2,l1); // body
+            begin_compile(p->opr.op[1], scope_level, 0, l2, l1, isFunction, funcName); // body
 
             fprintf(fp, "jmp L%d\n", l1);
 
@@ -446,7 +670,7 @@ int begin_compile(Node *p, Scope scope_level, bool flag, int brk, int cont)
         }
         case NEGATIVE:
         {
-            int op = begin_compile(p->opr.op[0], scope_level,0,brk,cont);
+            int op = begin_compile(p->opr.op[0], scope_level, 0, brk, cont, isFunction, funcName);
             if (op != INT_TYPE && op != FLOAT_TYPE)
             {
                 char msg[1024];
@@ -459,10 +683,10 @@ int begin_compile(Node *p, Scope scope_level, bool flag, int brk, int cont)
         }
         case '=':
         {
-            int ass = begin_compile(p->opr.op[1], scope_level,0,brk,cont);
+            int ass = begin_compile(p->opr.op[1], scope_level, 0, brk, cont, isFunction, funcName);
             // int op1 = begin_compile(p->opr.op[0]);
             // check if op[0] is dec or id
-            int t = begin_compile(p->opr.op[0], scope_level, true,brk,cont);
+            int t = begin_compile(p->opr.op[0], scope_level, true, brk, cont, isFunction, funcName);
             if (p->opr.op[0]->type == DECLARATION)
             {
                 if (p->opr.op[0]->dec.dataType != ass)
@@ -493,8 +717,8 @@ int begin_compile(Node *p, Scope scope_level, bool flag, int brk, int cont)
         }
         default:
         { // two operands
-            int op1 = begin_compile(p->opr.op[0], scope_level,0,brk,cont);
-            int op2 = begin_compile(p->opr.op[1], scope_level,0,brk,cont);
+            int op1 = begin_compile(p->opr.op[0], scope_level, 0, brk, cont, isFunction, funcName);
+            int op2 = begin_compile(p->opr.op[1], scope_level, 0, brk, cont, isFunction, funcName);
             if (op1 != op2)
             {
                 char msg[1024];

@@ -1,6 +1,8 @@
-for(int i=0; i<5; i=i+1){
-   int x = - 1;
-    if(x == 0){
-        continue;
-    }
-}
+def int func(int a,int b,string c)
+   {
+    int x=a+b;
+    return x;
+   }
+ 
+
+int n=func(1,2,"hello");

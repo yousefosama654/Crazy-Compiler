@@ -66,33 +66,25 @@ typedef struct
     struct NodeTypeTag *op[1]; /* expandable */
 } OperationNode;
 
-
 typedef struct
 {
-    char* symbol;     
-    int dataType;  /* type */
+    char *symbol;
+    int dataType; /* type */
     /* symbol */
-    int qualifier;              /* qualifier */
+    int qualifier; /* qualifier */
 } DeclerationNode;
-
-
-
 
 typedef struct NodeTypeTag
 {
     NodeType type; /* type of Node */
     union
     {
-        ConstantNode con;  /* constants */
-        IdentifierNode id; /* identifiers */
-        OperationNode opr; /* operators */
+        ConstantNode con;    /* constants */
+        IdentifierNode id;   /* identifiers */
+        OperationNode opr;   /* operators */
         DeclerationNode dec; /* declarations */
     };
 } Node;
-
-extern Node *construct_constant_node(int value);
-extern Node *construct_operation_node(int oper, int nOpers, ...);
-extern Node *construct_identifier_node(int oper, int nOpers, ...);
 
 extern void free_node(Node *p);
 extern void yyerror(const char *emsg);
@@ -115,7 +107,15 @@ typedef struct Symbol
     Symbol() : name(""), type(0), Qualfier(0), scope_level(0) {}
 } Symbol;
 
+typedef struct SymbolFunction
+{
+    std::string name;             // function name
+    int returnType;               // DataType:     {int, float, ..}
+    bool used;
+    std::vector<Symbol> argTypes; // argument types
+} SymbolFunction;
+
 void add_symbol(char *name, int type, int qualifier, Scope scope, bool isused, bool isInitialized);
 void print_symbol_table();
-int begin_compile(Node *p, Scope,bool flag=false,int brk=-1,int cont=-1);
+int begin_compile(Node *p, Scope, bool flag = false, int brk = -1, int cont = -1,int isFunction = 0,char* funcName = NULL);
 #endif

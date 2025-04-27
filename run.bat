@@ -26,22 +26,13 @@ if errorlevel 1 (
 REM Compile with GCC
 echo Compiling with GCC...
 g++ compiler.cpp  y.tab.c lex.yy.c 
-if errorlevel 1 (
-    echo  GCC compilation failed! Check gcc_errors.log
-    type gcc_errors.log
-    exit /b 1
-)
+
 
 REM Run the compiler
 echo Running compiler...
 a.exe 
-if errorlevel 1 (
-    echo Runtime error! Check runtime_errors.log
-    type runtime_errors.log
-    exit /b 1
-)
 
-REM If everything succeeded, delete logs
+
 del /Q bison_errors.log flex_errors.log gcc_errors.log runtime_errors.log 2>nul
 
 echo  Compilation and execution completed successfully!

@@ -1,6 +1,0 @@
-Symbol Table:
-Scope 0:
-Name: i, Type: int, isConst: 0 isUsed: 1, isIntilized: 1
-Scope 1:
-Name: x, Type: int, isConst: 0 isUsed: 1, isIntilized: 1
-Scope 2:

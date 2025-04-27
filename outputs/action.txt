@@ -1,22 +1,8 @@
-push (int) 0
-pop i
-L0
-push i
-push (int) 5
-lt
-jz L1
-push (int) 1
-neg
+proc func
+push a
+push b
+add
 pop x
 push x
-push (int) 0
-eq
-jz L2
-jmp L0
-L2
-push i
-push (int) 1
-add
-pop i
-jmp L0
-L1
+ret
+endproc	

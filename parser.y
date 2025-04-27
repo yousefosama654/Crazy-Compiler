@@ -145,7 +145,7 @@ parameter_list: declaration_statement ',' parameter_list          {$$=construct_
               |{$$=NULL;}
               ;
 
-function_call : VARIABLE '(' comma_expressions ')' ';'   {$$=construct_operation_node(CALL,2,construct_identifier_node($1),$3);}
+function_call : VARIABLE '(' comma_expressions ')' ';'   {$$=construct_operation_node(CALL,2,$1,$3);}
             ; 
 
 return_statement: RETURN statement { $$ = construct_operation_node(RETURN, 1, $2); }
@@ -181,7 +181,10 @@ switch_statement :  SWITCH '(' VARIABLE ')' '{' cases '}'                       
                  ;
 
 cases : CASE INTEGER ':' statement BREAK ';' cases                  {$$=construct_operation_node(CASE,4,construct_constant_node(INTEGER,INT_TYPE,$2),$4,construct_operation_node(BREAK,0),$7);}
+      | CASE INTEGER ':''{'statement_list BREAK';''}'  cases                   {$$=construct_operation_node(CASE,4,construct_constant_node(INTEGER,INT_TYPE,$2),$5,construct_operation_node(BREAK,0),$9);}
       | CASE INTEGER ':' statement  BREAK ';'                {$$=construct_operation_node(CASE,3,construct_constant_node(INTEGER,INT_TYPE,$2),$4,construct_operation_node(BREAK,0));}
+      | CASE INTEGER ':' '{'statement_list  BREAK ';' '}'               {$$=construct_operation_node(CASE,3,construct_constant_node(INTEGER,INT_TYPE,$2),$5,construct_operation_node(BREAK,0));}
+
       ;
 
 
@@ -222,6 +225,7 @@ for_declaration:
 rhs_nested_expression: expression                                          { $$ = $1; }
                       | VARIABLE '=' rhs_nested_expression                 { $$ = construct_operation_node('=', 2, construct_identifier_node($1), $3); }
                       | '(' VARIABLE '=' rhs_nested_expression ')'         { $$ = construct_operation_node('=', 2, construct_identifier_node($2), $4); }
+
                       ;
 
 statement_list: statement                                                   { $$ = $1; }
@@ -342,6 +346,8 @@ print_symbol_table();
 
 void yyerror(const char *msg) {
   log_errors(line,msg);
+  printf("Error: %s\n", msg);
+  printf("Line: %d\n", line);
   /* log_symbol_table(); */
   exit(1);
 }
