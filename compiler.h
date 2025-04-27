@@ -117,5 +117,5 @@ typedef struct Symbol
 
 void add_symbol(char *name, int type, int qualifier, Scope scope, bool isused, bool isInitialized);
 void print_symbol_table();
-int begin_compile(Node *p, Scope);
+int begin_compile(Node *p, Scope,bool flag=false,int brk=-1,int cont=-1);
 #endif

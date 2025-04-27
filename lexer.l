@@ -55,7 +55,7 @@
 
 "do"                        { return DO;       }
 "while"                     { return WHILE;    }
-
+"until"                   { return UNTIL;    }
 
 "if"                        { return IF;       }
 "else"                      { return ELSE;     }

@@ -1,11 +1,6 @@
 Symbol Table:
 Scope 0:
-Name: name, Type: string, isConst: 0 isUsed: 1, isIntilized: 1
-Name: age, Type: int, isConst: 0 isUsed: 1, isIntilized: 1
-Name: ol, Type: int, isConst: 0 isUsed: 0, isIntilized: 1
-Name: y, Type: int, isConst: 0 isUsed: 0, isIntilized: 0
+Name: i, Type: int, isConst: 0 isUsed: 1, isIntilized: 1
 Scope 1:
-Name: m_age, Type: int, isConst: 0 isUsed: 0, isIntilized: 1
+Name: x, Type: int, isConst: 0 isUsed: 1, isIntilized: 1
 Scope 2:
-Scope 3:
-Name: m_age, Type: int, isConst: 0 isUsed: 0, isIntilized: 1

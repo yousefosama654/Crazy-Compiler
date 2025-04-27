@@ -1,12 +1,22 @@
-push (string) "John Doe"
-pop name
-push (int) 30
-pop age
-push age
-pop m_age
-push (int) 3
-pop ol
-push age
-pop m_age
-push name
-print (string)
+push (int) 0
+pop i
+L0
+push i
+push (int) 5
+lt
+jz L1
+push (int) 1
+neg
+pop x
+push x
+push (int) 0
+eq
+jz L2
+jmp L0
+L2
+push i
+push (int) 1
+add
+pop i
+jmp L0
+L1

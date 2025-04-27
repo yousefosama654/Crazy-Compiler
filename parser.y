@@ -67,7 +67,7 @@ Keyword     Description
 /* Keywords of terminal symbols  to define CFG */
 %token IF                                                                /* Keywords for if statement */
 %token SWITCH CASE DEFAULT                                               /* Keywords for switch statement */
-%token FOR WHILE DO REPEAT BREAK CONTINUE                                       /* Keywords for loops */
+%token FOR WHILE DO UNTIL BREAK CONTINUE                                       /* Keywords for loops */
 %token CONST INT_TYPE FLOAT_TYPE BOOL_TYPE STRING_TYPE  VOID_TYPE  DECLARE_ONLY           /* Keywords for data types */
 %token FUNCTION                                                          /* Keyword for function declaration */
 %token PRINT                                                             /* Keyword for print */
@@ -160,7 +160,7 @@ while_statement:
   WHILE '(' expression ')' statement { $$ = construct_operation_node(WHILE, 2, $3, $5); }
   ;
 
-do_while_statement: DO statement_list REPEAT expression ';' { $$ = construct_operation_node(DO, 2, $2, $4); }
+do_while_statement: DO statement_list UNTIL expression ';' { $$ = construct_operation_node(DO, 2, $2, $4); }
                   ;
 
 for_statement: FOR '(' for_declaration ';' for_mid_stmt ';' for_assignment ')' '{' statement_list '}' { $$ = construct_operation_node(FOR, 4, $3, $5, $7, $10); }

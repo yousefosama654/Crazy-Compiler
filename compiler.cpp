@@ -8,7 +8,7 @@
 #include <fstream>
 using namespace std;
 extern int line;
-
+static int label = 0;
 void log_errors(int l, const char *msg)
 {
     FILE *ef = fopen("./outputs/error.txt", "w");
@@ -94,10 +94,8 @@ void add_symbol(char *name, int type, int qualifier, Scope scope, bool isused, b
     // heck if varibable is already declared in the current scope or any parent scope
     // get all parent scopes
     Scope *current_scope = &scope;
-    printf("current scope %d\n", current_scope->level);
     while (current_scope != nullptr)
     {
-        printf("current scope %d\n", current_scope->level);
         for (auto &symbol : symbol_table[current_scope->level])
         {
             if (symbol->name == name)
@@ -138,7 +136,6 @@ int use_symbol(char *name, Scope scope)
     Scope *current_scope = &scope;
     while (current_scope != nullptr)
     {
-        printf("cuurrent scope %d\n", current_scope->level);
         for (auto &symbol : symbol_table[current_scope->level])
         {
             if (symbol->name == name)
@@ -203,7 +200,32 @@ void open_file()
         fp = fopen("./outputs/action.txt", "w");
     }
 }
-int begin_compile(Node *p, Scope scope_level)
+
+void print_symbol_table()
+{
+    // open symbol.txt
+    FILE *sf = fopen("./outputs/symbol.txt", "w");
+    if (sf == NULL)
+    {
+        fprintf(sf, "Error: couldn't open symbol.txt for writing.\n");
+        return;
+    }
+    fprintf(sf, "Symbol Table:\n");
+    for (auto &entry : symbol_table)
+    {
+        int scope = entry.first;
+        vector<Symbol *> symbols = entry.second;
+        fprintf(sf, "Scope %d:\n", scope);
+        for (auto &symbol : symbols)
+        {
+            fprintf(sf, "Name: %s, Type: %s, isConst: %d isUsed: %d, isIntilized: %d\n", symbol->name.c_str(), get_type(symbol->type), symbol->Qualfier == CONST, symbol->used, symbol->isInitialized);
+        }
+    }
+    fclose(sf);
+}
+
+
+int begin_compile(Node *p, Scope scope_level, bool flag, int brk, int cont)
 {
     // open action files
     open_file();
@@ -214,6 +236,7 @@ int begin_compile(Node *p, Scope scope_level)
     switch (p->type)
     {
     case CONSTANT:
+    {
         switch (p->con.dataType)
         {
 
@@ -239,12 +262,12 @@ int begin_compile(Node *p, Scope scope_level)
             break;
         }
         break;
+    }
     case IDENTIFIER:
     {
         int type = use_symbol(p->id.name, scope_level);
-
-        fprintf(fp, "push %s\n", p->id.name);
-        printf("type %s\n", get_type(type));
+        if (!flag)
+            fprintf(fp, "push %s\n", p->id.name);
         return type;
         break;
     }
@@ -261,9 +284,10 @@ int begin_compile(Node *p, Scope scope_level)
 
         case PRINT:
         {
-            int op = begin_compile(p->opr.op[0], scope_level);
+            int op = begin_compile(p->opr.op[0], scope_level,0,brk,cont);
             fprintf(fp, "print (%s)\n", get_type(op));
             return 0;
+            break;
         }
         case BLOCK:
         {
@@ -273,13 +297,13 @@ int begin_compile(Node *p, Scope scope_level)
             // compile the block
             for (int i = 0; i < p->opr.nops; i++)
             {
-                begin_compile(p->opr.op[i], *new_scope);
+                begin_compile(p->opr.op[i], *new_scope,0,brk,cont);
             }
             break;
         }
         case NOT:
         {
-            int op = begin_compile(p->opr.op[0], scope_level);
+            int op = begin_compile(p->opr.op[0], scope_level,0,brk,cont);
             if (op != BOOL_TYPE)
             {
                 char msg[1024];
@@ -290,9 +314,139 @@ int begin_compile(Node *p, Scope scope_level)
             return op;
             break;
         }
+        case ';':
+        {
+            for (int i = 0; i < p->opr.nops; i++)
+                begin_compile(p->opr.op[i], scope_level,0,brk,cont);
+            break;
+        }
+        case IF:
+        {
+
+            int if_expr = begin_compile(p->opr.op[0], scope_level,0,brk,cont);
+            if (if_expr != BOOL_TYPE)
+            {
+                char msg[1024];
+                sprintf(msg, "Semantic ERROR:expression must be bool\n");
+                yyerror(msg);
+            }
+            // if
+            Scope *new_scope = new Scope(scope_level.level + 1, &scope_level);
+            add_scope(new_scope);
+            if (p->opr.nops == 2)
+            {
+
+                int end = label;
+                fprintf(fp, "jz L%d\n", label++);
+
+                begin_compile(p->opr.op[1], *new_scope,0,brk,cont);
+
+                fprintf(fp, "L%d\n", end);
+            }
+            else if (p->opr.nops == 3)
+            {
+                int end = label;
+                fprintf(fp, "jz L%d\n", label++);
+                begin_compile(p->opr.op[1], *new_scope,0,brk,cont);
+                fprintf(fp, "L%d\n", end);
+                Scope *new_scope2 = new Scope(scope_level.level + 2, &scope_level);
+                add_scope(new_scope2);
+                begin_compile(p->opr.op[2], *new_scope2,0,brk,cont);
+            }
+            return 0;
+            break;
+        }
+        case FOR:
+        {
+
+            Scope *new_scope = new Scope(scope_level.level + 1, &scope_level);
+            add_scope(new_scope);
+            begin_compile(p->opr.op[0], scope_level,0,brk,cont); // initialize
+            int l1 = label++;
+            fprintf(fp, "L%d\n", l1);
+
+            int cond = begin_compile(p->opr.op[1], scope_level,0,brk,cont); // condition
+            if (cond != BOOL_TYPE)
+            {
+                yyerror("Semantic ERROR: Condition must be of a BOOL Value");
+            }
+
+            int l2 = label++;
+            fprintf(fp, "jz L%d\n", l2);
+
+            begin_compile(p->opr.op[3], *new_scope,0,l2,l1);  // body
+            begin_compile(p->opr.op[2], scope_level,0,brk,cont); // next iter inc/dec
+            fprintf(fp, "jmp L%d\n", l1);             // jump to condition
+            fprintf(fp, "L%d\n", l2);                 // end of loop
+            break;
+        }
+        case BREAK:
+        {
+            if (brk == -1)
+            {
+                yyerror("Semantic ERROR: No loop to Break from");
+                break;
+            }
+            fprintf(fp, "jmp L%d\n", brk);
+            break;
+        }
+
+        case CONTINUE:
+        {
+            printf("continue %d\n", cont);
+            if (cont == -1)
+            {
+                yyerror("Semantic ERROR: Continue statement not in loop");
+                break;
+            }
+            fprintf(fp, "jmp L%d\n", cont);
+            break;
+        }
+        case DO:
+        {
+            Scope *new_scope = new Scope(scope_level.level + 1, &scope_level);
+            int l1 = label++;
+            int l2 = label++;
+            fprintf(fp, "L%d\n", l1);
+
+            begin_compile(p->opr.op[0], *new_scope,0,l2,l1);             // body
+            int cond = begin_compile(p->opr.op[1], scope_level,0,brk,cont); // condition
+            if (cond != BOOL_TYPE)
+            {
+                yyerror("Semantic ERROR: Condition must be of a BOOL value");
+            }
+            fprintf(fp, "jnz L%d\n", l1);
+          
+            fprintf(fp, "L%d\n", l2);
+
+            break;
+        }
+        case WHILE:
+        {
+
+            Scope *new_scope = new Scope(scope_level.level + 1, &scope_level);
+            int l1 = label;
+            fprintf(fp, "L%d\n", label++);
+
+            int type1 = begin_compile(p->opr.op[0], scope_level,0,brk,cont); // condition
+            if (type1 != BOOL_TYPE)
+            {
+                yyerror("semantic ERROR: Conditions must be of a BOOL Value");
+            }
+            int l2 = label++;
+            fprintf(fp, "jz L%d\n", l2);
+
+            begin_compile(p->opr.op[1], scope_level,0,l2,l1); // body
+
+            fprintf(fp, "jmp L%d\n", l1);
+
+            fprintf(fp, "L%d\n", l2);
+
+            break;
+        }
         case NEGATIVE:
         {
-            int op = begin_compile(p->opr.op[0], scope_level);
+            int op = begin_compile(p->opr.op[0], scope_level,0,brk,cont);
             if (op != INT_TYPE && op != FLOAT_TYPE)
             {
                 char msg[1024];
@@ -305,10 +459,10 @@ int begin_compile(Node *p, Scope scope_level)
         }
         case '=':
         {
-            int ass = begin_compile(p->opr.op[1], scope_level);
+            int ass = begin_compile(p->opr.op[1], scope_level,0,brk,cont);
             // int op1 = begin_compile(p->opr.op[0]);
             // check if op[0] is dec or id
-            int t = begin_compile(p->opr.op[0], scope_level);
+            int t = begin_compile(p->opr.op[0], scope_level, true,brk,cont);
             if (p->opr.op[0]->type == DECLARATION)
             {
                 if (p->opr.op[0]->dec.dataType != ass)
@@ -338,9 +492,9 @@ int begin_compile(Node *p, Scope scope_level)
             break;
         }
         default:
-            // two operands
-            int op1 = begin_compile(p->opr.op[0], scope_level);
-            int op2 = begin_compile(p->opr.op[1], scope_level);
+        { // two operands
+            int op1 = begin_compile(p->opr.op[0], scope_level,0,brk,cont);
+            int op2 = begin_compile(p->opr.op[1], scope_level,0,brk,cont);
             if (op1 != op2)
             {
                 char msg[1024];
@@ -407,7 +561,7 @@ int begin_compile(Node *p, Scope scope_level)
                     yyerror(msg);
                 }
                 fprintf(fp, "lt\n");
-                return op1;
+                return BOOL_TYPE;
                 break;
             case '>':
                 if (op1 != INT_TYPE && op1 != FLOAT_TYPE)
@@ -417,7 +571,7 @@ int begin_compile(Node *p, Scope scope_level)
                     yyerror(msg);
                 }
                 fprintf(fp, "gt\n");
-                return op1;
+                return BOOL_TYPE;
                 break;
 
             case GREATER_EQUAL:
@@ -428,7 +582,7 @@ int begin_compile(Node *p, Scope scope_level)
                     yyerror(msg);
                 }
                 fprintf(fp, "ge\n");
-                return op1;
+                return BOOL_TYPE;
                 break;
             case LESS_EQUAL:
                 if (op1 != INT_TYPE && op1 != FLOAT_TYPE)
@@ -438,15 +592,15 @@ int begin_compile(Node *p, Scope scope_level)
                     yyerror(msg);
                 }
                 fprintf(fp, "le\n");
-                return op1;
+                return BOOL_TYPE;
                 break;
             case NOT_EQUAL:
                 fprintf(fp, "ne\n");
-                return op1;
+                return BOOL_TYPE;
                 break;
             case EQUAL:
                 fprintf(fp, "eq\n");
-                return op1;
+                return BOOL_TYPE;
                 break;
             case AND:
                 if (op1 != BOOL_TYPE)
@@ -470,30 +624,8 @@ int begin_compile(Node *p, Scope scope_level)
                 break;
             }
         }
+        }
     }
         return 0;
     }
-}
-
-void print_symbol_table()
-{
-    // open symbol.txt
-    FILE *sf = fopen("./outputs/symbol.txt", "w");
-    if (sf == NULL)
-    {
-        fprintf(sf, "Error: couldn't open symbol.txt for writing.\n");
-        return;
-    }
-    fprintf(sf, "Symbol Table:\n");
-    for (auto &entry : symbol_table)
-    {
-        int scope = entry.first;
-        vector<Symbol *> symbols = entry.second;
-        fprintf(sf, "Scope %d:\n", scope);
-        for (auto &symbol : symbols)
-        {
-            fprintf(sf, "Name: %s, Type: %s, isConst: %d isUsed: %d, isIntilized: %d\n", symbol->name.c_str(), get_type(symbol->type), symbol->Qualfier == CONST, symbol->used, symbol->isInitialized);
-        }
-    }
-    fclose(sf);
 }
