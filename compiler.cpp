@@ -6,13 +6,12 @@
 #include <string.h>
 #include <sstream>
 #include <fstream>
+extern map<Node *, int> error_line;
 using namespace std;
-extern int line;
 static int label = 0;
 static int level = 0;
 void log_errors(int l, const char *msg)
 {
-    printf("Error: %s at line %d\n", msg, l);
     FILE *ef = fopen("./outputs/error.txt", "w");
     if (ef == NULL)
     {
@@ -69,12 +68,12 @@ void log_errors(int l, const char *msg)
         }
         else
         {
-            fprintf(ef, "syntax error at line %d\n", line);
+            fprintf(ef, "syntax error at line %d\n", l);
         }
     }
     else
     {
-        fprintf(ef, "syntax error at line %d\n", line);
+        fprintf(ef, "syntax error at line %d\n", l);
     }
 }
 char *get_type(int type)
@@ -96,7 +95,7 @@ char *get_type(int type)
 FILE *fp = NULL;
 map<int, vector<Symbol *>> symbol_table;           // symbol table
 map<int, vector<SymbolFunction *>> function_table; // function table
-void add_symbol(char *name, int type, int qualifier, Scope scope, bool isused, bool isInitialized)
+void add_symbol(char *name, int type, int qualifier, Scope scope, bool isused, bool isInitialized, int line)
 {
 
     // check if global symbol already exists
@@ -115,7 +114,8 @@ void add_symbol(char *name, int type, int qualifier, Scope scope, bool isused, b
             {
                 char msg[1024];
                 sprintf(msg, "Semantic ERROR: variable %s already declared in scope %d\n", name, scope.level);
-                yyerror(msg);
+                log_errors(line, msg);
+                exit(1);
                 return;
             }
         }
@@ -131,7 +131,7 @@ void add_symbol(char *name, int type, int qualifier, Scope scope, bool isused, b
     s->isInitialized = isInitialized;
     symbol_table[scope.level].push_back(s);
 }
-void add_func(char *name, int type, vector<Symbol> argTypes, Scope scope)
+void add_func(char *name, int type, vector<Symbol> argTypes, Scope scope, int line)
 {
     // check if global symbol already exists
     if (function_table.find(0) == function_table.end())
@@ -149,7 +149,7 @@ void add_func(char *name, int type, vector<Symbol> argTypes, Scope scope)
             {
                 char msg[1024];
                 sprintf(msg, "Semantic ERROR: function %s already declared in scope %d\n", name, scope.level);
-                yyerror(msg);
+                log_errors(line, msg);
                 return;
             }
         }
@@ -172,7 +172,7 @@ void add_scope(Scope *scope)
     }
 }
 
-int use_symbol(char *name, Scope scope)
+int use_symbol(char *name, Scope scope, int line)
 {
     // check if varibable is already declared in the current scope or any parent scope
     // get all parent scopes
@@ -184,7 +184,6 @@ int use_symbol(char *name, Scope scope)
             if (symbol->name == name)
             {
                 symbol->used = true; // mark as used
-                printf("used %s\n", symbol->name.c_str());
                 return symbol->type; // return type
             }
         }
@@ -193,7 +192,8 @@ int use_symbol(char *name, Scope scope)
     }
     char msg[1024];
     sprintf(msg, "Semantic ERROR: variable %s not declared in scope %d\n", name, scope.level);
-    yyerror(msg);
+    log_errors(line, msg);
+    exit(1);
 }
 void initilize_symbol(char *name, Scope scope)
 {
@@ -215,7 +215,7 @@ void initilize_symbol(char *name, Scope scope)
     }
 }
 
-void check_if_const(char *name, Scope scope)
+void check_if_const(char *name, Scope scope, int line)
 {
     // check if varibable is already declared in the current scope or any parent scope
     // get all parent scopes
@@ -228,7 +228,7 @@ void check_if_const(char *name, Scope scope)
             {
                 char msg[1024];
                 sprintf(msg, "Semantic ERROR: variable %s is constant and cannot be modified\n", name);
-                yyerror(msg);
+                log_errors(line, msg);
                 return;
             }
         }
@@ -258,16 +258,16 @@ void print_symbol_table()
     {
         int scope = entry.first;
         vector<Symbol *> symbols = entry.second;
-        bool f=0;
+        bool f = 0;
         for (auto &symbol : symbols)
         {
-            if(f==0){
+            if (f == 0)
+            {
                 fprintf(sf, "Scope %d:\n", scope);
-                f=1;
+                f = 1;
             }
             fprintf(sf, "\tName: %s, Type: %s, isConst: %d isUsed: %d, isIntilized: %d\n", symbol->name.c_str(), get_type(symbol->type), symbol->Qualfier == CONST, symbol->used, symbol->isInitialized);
         }
-
     }
     fprintf(sf, "\nFunctions:\n");
     for (auto &entry : function_table)
@@ -289,7 +289,6 @@ void print_symbol_table()
 
 void add_argument(char *name, char *argName, int type, int qualifier, Scope scope)
 {
-    printf("add argument %s %s\n", name, argName);
     Scope *current_scope = &scope;
     while (current_scope != nullptr)
     {
@@ -308,7 +307,7 @@ void add_argument(char *name, char *argName, int type, int qualifier, Scope scop
         current_scope = current_scope->parent;
     }
 }
-int check_function(char *name, Scope scope)
+int check_function(char *name, Scope scope, int line)
 {
     // check if varibable is already declared
     // get all parent scopes
@@ -319,7 +318,7 @@ int check_function(char *name, Scope scope)
         {
             if (symbol->name == name)
             {
-                symbol->used = true; // mark as used
+                symbol->used = true;       // mark as used
                 return symbol->returnType; // return type
             }
         }
@@ -327,7 +326,8 @@ int check_function(char *name, Scope scope)
     }
     char msg[1024];
     sprintf(msg, "Semantic ERROR: function %s not declared in scope %d\n", name, scope.level);
-    yyerror(msg);
+    log_errors(line, msg);
+    exit(1);
 }
 int begin_compile(Node *p, Scope scope_level, bool flag, int brk, int cont, int isFunction, char *funcName)
 {
@@ -361,7 +361,6 @@ int begin_compile(Node *p, Scope scope_level, bool flag, int brk, int cont, int 
             return STRING_TYPE;
             break;
         default:
-            printf("ERROR");
             return p->con.dataType;
             break;
         }
@@ -369,7 +368,7 @@ int begin_compile(Node *p, Scope scope_level, bool flag, int brk, int cont, int 
     }
     case IDENTIFIER:
     {
-        int type = use_symbol(p->id.name, scope_level);
+        int type = use_symbol(p->id.name, scope_level, p->line);
         if (!flag)
             fprintf(fp, "push %s\n", p->id.name);
         return type;
@@ -381,7 +380,7 @@ int begin_compile(Node *p, Scope scope_level, bool flag, int brk, int cont, int 
         {
             add_argument(funcName, p->dec.symbol, p->dec.dataType, p->dec.qualifier, scope_level);
         }
-        add_symbol(p->dec.symbol, p->dec.dataType, p->dec.qualifier, scope_level, false, false);
+        add_symbol(p->dec.symbol, p->dec.dataType, p->dec.qualifier, scope_level, false, false, p->line);
         return p->dec.dataType;
         break;
     }
@@ -400,10 +399,10 @@ int begin_compile(Node *p, Scope scope_level, bool flag, int brk, int cont, int 
         }
         case CALL:
         {
-            ///check if function exists in the symbol table
-           int t= check_function(p->opr.op[0]->id.name, scope_level);
+            /// check if function exists in the symbol table
+            int t = check_function(p->opr.op[0]->id.name, scope_level, p->line);
             fprintf(fp, "call %s\n", p->opr.op[0]->id.name);
-           return t;
+            return t;
             break;
         }
         case BLOCK:
@@ -430,7 +429,8 @@ int begin_compile(Node *p, Scope scope_level, bool flag, int brk, int cont, int 
             {
                 char msg[1024];
                 sprintf(msg, "Semantic ERROR: cannot apply unary NOT to %s\n", get_type(op));
-                yyerror(msg);
+                log_errors(p->line, msg);
+                exit(1);
             }
             fprintf(fp, "not\n");
             return op;
@@ -451,7 +451,8 @@ int begin_compile(Node *p, Scope scope_level, bool flag, int brk, int cont, int 
             {
                 char msg[1024];
                 sprintf(msg, "Semantic ERROR:expression must be bool\n");
-                yyerror(msg);
+                log_errors(p->line, msg);
+                exit(1);
             }
             // if
             Scope *new_scope = new Scope(++level, &scope_level);
@@ -468,13 +469,16 @@ int begin_compile(Node *p, Scope scope_level, bool flag, int brk, int cont, int 
             }
             else if (p->opr.nops == 3)
             {
+                int l2 = label++;
                 int end = label;
                 fprintf(fp, "jz L%d\n", label++);
                 begin_compile(p->opr.op[1], *new_scope, 0, brk, cont, isFunction, funcName); // if body
+                fprintf(fp, "jmp L%d\n", l2);                                                // jump to end of if
                 fprintf(fp, "L%d\n", end);
                 Scope *new_scope2 = new Scope(++level, &scope_level);
                 add_scope(new_scope2);
                 begin_compile(p->opr.op[2], *new_scope2, 0, brk, cont, isFunction, funcName); // else body
+                fprintf(fp, "L%d\n", l2);                                                     // end of if
             }
             return 0;
             break;
@@ -491,7 +495,8 @@ int begin_compile(Node *p, Scope scope_level, bool flag, int brk, int cont, int 
             int cond = begin_compile(p->opr.op[1], scope_level, 0, brk, cont, isFunction, funcName); // condition
             if (cond != BOOL_TYPE)
             {
-                yyerror("Semantic ERROR: Condition must be of a BOOL Value");
+                log_errors(p->line, "Semantic ERROR: Condition must be of a BOOL Value");
+                exit(1);
             }
 
             int l2 = label++;
@@ -507,7 +512,8 @@ int begin_compile(Node *p, Scope scope_level, bool flag, int brk, int cont, int 
         {
             if (brk == -1)
             {
-                yyerror("Semantic ERROR: No loop to Break from");
+                log_errors(p->line, "Semantic ERROR: No loop to Break from");
+                exit(1);
                 break;
             }
             fprintf(fp, "jmp L%d\n", brk);
@@ -553,8 +559,7 @@ int begin_compile(Node *p, Scope scope_level, bool flag, int brk, int cont, int 
                 }
                 Scope *new_scope = new Scope(++level, &scope_level);
                 add_scope(new_scope);
-                printf("new scope parent %d\n", new_scope->parent->level);
-                printf("curr scope parent %d\n", new_scope->level);
+
                 begin_compile(n->opr.op[1], *new_scope, 0, brk, cont, isFunction, funcName); // execute case body
                 fprintf(fp, "jmp L%d\n", endLabel);
 
@@ -584,23 +589,24 @@ int begin_compile(Node *p, Scope scope_level, bool flag, int brk, int cont, int 
         }
         case FUNCTION:
         {
-            printf("function %s %s\n", p->opr.op[0]->id.name, get_type(p->opr.op[0]->dec.dataType));
             fprintf(fp, "proc %s\n", p->opr.op[0]->id.name);
             Scope *new_scope = new Scope(++level, &scope_level);
             add_scope(new_scope);
-            add_func(p->opr.op[0]->id.name, p->opr.op[0]->dec.dataType, vector<Symbol>(), scope_level); // add function to symbol table
+            add_func(p->opr.op[0]->id.name, p->opr.op[0]->dec.dataType, vector<Symbol>(), scope_level, p->line); // add function to symbol table
             if (p->opr.op[1])
             {
                 begin_compile(p->opr.op[1], *new_scope, 0, brk, cont, 1, p->opr.op[0]->id.name); // function arguments
             }
-          
+
             begin_compile(p->opr.op[2], *new_scope, 0, brk, cont, isFunction, funcName);               // function body
             int ret_typ = begin_compile(p->opr.op[3], *new_scope, 0, brk, cont, isFunction, funcName); // return statement
+            // printf("return type and dec type %s %s", get_type(ret_typ), get_type(p->opr.op[0]->dec.dataType));
             if (ret_typ != p->opr.op[0]->dec.dataType)
             {
                 char msg[1024];
                 sprintf(msg, "Semantic ERROR: function %s return type mismatch\n", p->opr.op[0]->id.name);
-                yyerror(msg);
+                log_errors(p->line, msg);
+                exit(1);
             }
             return ret_typ;
             break;
@@ -610,17 +616,19 @@ int begin_compile(Node *p, Scope scope_level, bool flag, int brk, int cont, int 
         {
 
             int t = begin_compile(p->opr.op[0], scope_level, 0, brk, cont, isFunction, funcName); // return statement
-            fprintf(fp, "ret\n");
+            if (t != VOID_TYPE)
+                fprintf(fp, "ret\n");
             fprintf(fp, "endproc\t\n");
+
             return t;
             break;
         }
         case CONTINUE:
         {
-            printf("continue %d\n", cont);
             if (cont == -1)
             {
-                yyerror("Semantic ERROR: Continue statement not in loop");
+                log_errors(p->line, "Semantic ERROR: Continue statement not in loop");
+                exit(1);
                 break;
             }
             fprintf(fp, "jmp L%d\n", cont);
@@ -637,7 +645,8 @@ int begin_compile(Node *p, Scope scope_level, bool flag, int brk, int cont, int 
             int cond = begin_compile(p->opr.op[1], scope_level, 0, brk, cont, isFunction, funcName); // condition
             if (cond != BOOL_TYPE)
             {
-                yyerror("Semantic ERROR: Condition must be of a BOOL value");
+                log_errors(p->line, "Semantic ERROR: Condition must be of a BOOL value");
+                exit(1);
             }
             fprintf(fp, "jnz L%d\n", l1);
 
@@ -655,7 +664,8 @@ int begin_compile(Node *p, Scope scope_level, bool flag, int brk, int cont, int 
             int type1 = begin_compile(p->opr.op[0], scope_level, 0, brk, cont, isFunction, funcName); // condition
             if (type1 != BOOL_TYPE)
             {
-                yyerror("semantic ERROR: Conditions must be of a BOOL Value");
+                log_errors(p->line, "semantic ERROR: Conditions must be of a BOOL Value");
+                exit(1);
             }
             int l2 = label++;
             fprintf(fp, "jz L%d\n", l2);
@@ -675,7 +685,8 @@ int begin_compile(Node *p, Scope scope_level, bool flag, int brk, int cont, int 
             {
                 char msg[1024];
                 sprintf(msg, "Semantic ERROR: cannot apply unary minus to %s\n", get_type(op));
-                yyerror(msg);
+                log_errors(p->line, msg);
+                exit(1);
             }
             fprintf(fp, "neg\n");
             return op;
@@ -692,8 +703,9 @@ int begin_compile(Node *p, Scope scope_level, bool flag, int brk, int cont, int 
                 if (p->opr.op[0]->dec.dataType != ass)
                 {
                     char msg[1024];
-                    sprintf(msg, "Semantic ERROR: cannot assign %s to %s\n", get_type(ass), get_type(p->opr.op[0]->id.dataType));
-                    yyerror(msg);
+                    sprintf(msg, "Semantic ERROR: cannot assign %s to %s\n", get_type(ass), get_type(t));
+                    log_errors(p->line, msg);
+                    exit(1);
                 }
                 fprintf(fp, "pop %s\n", p->opr.op[0]->dec.symbol);
                 initilize_symbol(p->opr.op[0]->dec.symbol, scope_level);
@@ -701,12 +713,13 @@ int begin_compile(Node *p, Scope scope_level, bool flag, int brk, int cont, int 
             else
             {
                 // check if identifer is constant
-                check_if_const(p->opr.op[0]->id.name, scope_level);
+                check_if_const(p->opr.op[0]->id.name, scope_level, p->line);
                 if (t != ass)
                 {
                     char msg[1024];
-                    sprintf(msg, "Semantic ERROR: cannot assign %s to %s\n", get_type(ass), get_type(p->opr.op[0]->id.dataType));
-                    yyerror(msg);
+                    sprintf(msg, "Semantic ERROR: cannot assign %s to %s\n", get_type(ass), get_type(t));
+                    log_errors(p->line, msg);
+                    exit(1);
                 }
                 fprintf(fp, "pop %s\n", p->opr.op[0]->id.name);
                 initilize_symbol(p->opr.op[0]->id.name, scope_level);
@@ -723,7 +736,8 @@ int begin_compile(Node *p, Scope scope_level, bool flag, int brk, int cont, int 
             {
                 char msg[1024];
                 sprintf(msg, "Semantic ERROR: MISMATCH Operands data types ( operand1 %s and operand2 %s)", get_type(op1), get_type(op2));
-                yyerror(msg);
+                log_errors(p->line, msg);
+                exit(1);
             }
             switch (p->opr.symbol)
             {
@@ -732,7 +746,8 @@ int begin_compile(Node *p, Scope scope_level, bool flag, int brk, int cont, int 
                 {
                     char msg[1024];
                     sprintf(msg, "cannot add operands of type %s", get_type(op1));
-                    yyerror(msg);
+                    log_errors(p->line, msg);
+                    exit(1);
                 }
                 fprintf(fp, "add\n");
                 return op1;
@@ -742,7 +757,8 @@ int begin_compile(Node *p, Scope scope_level, bool flag, int brk, int cont, int 
                 {
                     char msg[1024];
                     sprintf(msg, "cannot subtract operands of type %s", get_type(op1));
-                    yyerror(msg);
+                    log_errors(p->line, msg);
+                    exit(1);
                 }
                 fprintf(fp, "sub\n");
                 return op1;
@@ -752,7 +768,8 @@ int begin_compile(Node *p, Scope scope_level, bool flag, int brk, int cont, int 
                 {
                     char msg[1024];
                     sprintf(msg, "cannot multiply operands of type %s", get_type(op1));
-                    yyerror(msg);
+                    log_errors(p->line, msg);
+                    exit(1);
                 }
                 fprintf(fp, "mul\n");
                 return op1;
@@ -762,7 +779,8 @@ int begin_compile(Node *p, Scope scope_level, bool flag, int brk, int cont, int 
                 {
                     char msg[1024];
                     sprintf(msg, "cannot divide operands of type %s", get_type(op1));
-                    yyerror(msg);
+                    log_errors(p->line, msg);
+                    exit(1);
                 }
                 fprintf(fp, "div\n");
                 return op1;
@@ -772,7 +790,8 @@ int begin_compile(Node *p, Scope scope_level, bool flag, int brk, int cont, int 
                 {
                     char msg[1024];
                     sprintf(msg, "cannot mod operands of type %s", get_type(op1));
-                    yyerror(msg);
+                    log_errors(p->line, msg);
+                    exit(1);
                 }
                 fprintf(fp, "mod\n");
                 return op1;
@@ -782,7 +801,8 @@ int begin_compile(Node *p, Scope scope_level, bool flag, int brk, int cont, int 
                 {
                     char msg[1024];
                     sprintf(msg, "cannot compare operands of type %s", get_type(op1));
-                    yyerror(msg);
+                    log_errors(p->line, msg);
+                    exit(1);
                 }
                 fprintf(fp, "lt\n");
                 return BOOL_TYPE;
@@ -792,7 +812,8 @@ int begin_compile(Node *p, Scope scope_level, bool flag, int brk, int cont, int 
                 {
                     char msg[1024];
                     sprintf(msg, "cannot compare operands of type %s", get_type(op1));
-                    yyerror(msg);
+                    log_errors(p->line, msg);
+                    exit(1);
                 }
                 fprintf(fp, "gt\n");
                 return BOOL_TYPE;
@@ -803,7 +824,8 @@ int begin_compile(Node *p, Scope scope_level, bool flag, int brk, int cont, int 
                 {
                     char msg[1024];
                     sprintf(msg, "cannot compare operands of type %s", get_type(op1));
-                    yyerror(msg);
+                    log_errors(p->line, msg);
+                    exit(1);
                 }
                 fprintf(fp, "ge\n");
                 return BOOL_TYPE;
@@ -813,7 +835,8 @@ int begin_compile(Node *p, Scope scope_level, bool flag, int brk, int cont, int 
                 {
                     char msg[1024];
                     sprintf(msg, "cannot compare operands of type %s", get_type(op1));
-                    yyerror(msg);
+                    log_errors(p->line, msg);
+                    exit(1);
                 }
                 fprintf(fp, "le\n");
                 return BOOL_TYPE;
@@ -831,7 +854,8 @@ int begin_compile(Node *p, Scope scope_level, bool flag, int brk, int cont, int 
                 {
                     char msg[1024];
                     sprintf(msg, "Semantic ERROR: cannot apply AND to %s\n", get_type(op1));
-                    yyerror(msg);
+                    log_errors(p->line, msg);
+                    exit(1);
                 }
                 fprintf(fp, "and\n");
                 return op1;
@@ -841,7 +865,8 @@ int begin_compile(Node *p, Scope scope_level, bool flag, int brk, int cont, int 
                 {
                     char msg[1024];
                     sprintf(msg, "Semantic ERROR: cannot apply OR to %s\n", get_type(op1));
-                    yyerror(msg);
+                    log_errors(p->line, msg);
+                    exit(1);
                 }
                 fprintf(fp, "or\n");
                 return op1;

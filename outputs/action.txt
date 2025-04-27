@@ -1,8 +1,9 @@
 proc func
+push (int) 3
+pop b
 push a
 push b
 add
-pop x
-push x
-ret
+pop c
 endproc	
+call func

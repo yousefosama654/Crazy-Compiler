@@ -1,8 +1,6 @@
-def int func(int a,int b,string c)
-   {
-    int x=a+b;
-    return x;
-   }
- 
+def void func(int a, int b) {
+    int c = a + b;
+    return ;
+}
 
-int n=func(1,2,"hello");
+func(1, "2",3);

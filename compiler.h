@@ -77,6 +77,7 @@ typedef struct
 typedef struct NodeTypeTag
 {
     NodeType type; /* type of Node */
+    int line;     /* line number */
     union
     {
         ConstantNode con;    /* constants */
@@ -109,13 +110,12 @@ typedef struct Symbol
 
 typedef struct SymbolFunction
 {
-    std::string name;             // function name
-    int returnType;               // DataType:     {int, float, ..}
+    std::string name; // function name
+    int returnType;   // DataType:     {int, float, ..}
     bool used;
     std::vector<Symbol> argTypes; // argument types
 } SymbolFunction;
 
-void add_symbol(char *name, int type, int qualifier, Scope scope, bool isused, bool isInitialized);
 void print_symbol_table();
-int begin_compile(Node *p, Scope, bool flag = false, int brk = -1, int cont = -1,int isFunction = 0,char* funcName = NULL);
+int begin_compile(Node *p, Scope, bool flag = false, int brk = -1, int cont = -1, int isFunction = 0, char *funcName = NULL);
 #endif

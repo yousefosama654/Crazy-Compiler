@@ -119,14 +119,14 @@ statement: ';'                                 { $$ = construct_operation_node('
           | expression ';'                     { $$ = $1; }
           | PRINT expression ';'               { $$ = construct_operation_node(PRINT, 1, $2); }
 
-          | assignment_statement ';'           { $$ = $1; } 
-          | declaration_statement ';'          { $$ = $1; }
+          | assignment_statement ';'           { $$ = $1;; } 
+          | declaration_statement ';'          { $$ = $1;; }
           
-          | while_statement                    { $$ = $1; }
+          | while_statement                    { $$ = $1;; }
           | do_while_statement                 { $$ = $1; }
           | for_statement                      { $$ = $1; }
           
-          | function_call                      { $$ = $1; }
+          | function_call ';'                     { $$ = $1; }
           | function_declaration               { $$ = $1;}
           | return_statement                   { $$ = $1; }
 
@@ -134,18 +134,21 @@ statement: ';'                                 { $$ = construct_operation_node('
           | switch_statement                   { $$ = $1; }
           | '{' statement_list '}'             { $$ = construct_operation_node(BLOCK, 1, $2); }
           | BREAK ';'                          { $$ = construct_operation_node(BREAK, 1, NULL); }
-          | CONTINUE ';'                       { $$ = construct_operation_node(CONTINUE, 1, NULL); } 
+          | CONTINUE ';'                       { $$ = construct_operation_node(CONTINUE, 1, NULL); }
           ;
                     
 /* Functions */
 function_declaration: FUNCTION declaration_statement'('parameter_list')' '{'statement  return_statement'}'  {$$=construct_operation_node(FUNCTION,4,$2,$4,$7,$8);}
+                | FUNCTION declaration_statement'('parameter_list')' '{'return_statement'}'  {$$=construct_operation_node(FUNCTION,4,$2,$4,NULL,$7);}
+             ;
+                    
 
 parameter_list: declaration_statement ',' parameter_list          {$$=construct_operation_node(COMMA,2,$1,$3);}
               | declaration_statement                              {$$=$1;}
               |{$$=NULL;}
               ;
 
-function_call : VARIABLE '(' comma_expressions ')' ';'   {$$=construct_operation_node(CALL,2,$1,$3);}
+function_call : VARIABLE '(' comma_expressions ')'   {$$=construct_operation_node(CALL,2,construct_identifier_node($1),$3);}
             ; 
 
 return_statement: RETURN statement { $$ = construct_operation_node(RETURN, 1, $2); }
@@ -181,9 +184,9 @@ switch_statement :  SWITCH '(' VARIABLE ')' '{' cases '}'                       
                  ;
 
 cases : CASE INTEGER ':' statement BREAK ';' cases                  {$$=construct_operation_node(CASE,4,construct_constant_node(INTEGER,INT_TYPE,$2),$4,construct_operation_node(BREAK,0),$7);}
-      | CASE INTEGER ':''{'statement_list BREAK';''}'  cases                   {$$=construct_operation_node(CASE,4,construct_constant_node(INTEGER,INT_TYPE,$2),$5,construct_operation_node(BREAK,0),$9);}
+      /* | CASE INTEGER ':''{'statement_list BREAK';' '}'  cases                   {$$=construct_operation_node(CASE,4,construct_constant_node(INTEGER,INT_TYPE,$2),$5,construct_operation_node(BREAK,0),$9);} */
       | CASE INTEGER ':' statement  BREAK ';'                {$$=construct_operation_node(CASE,3,construct_constant_node(INTEGER,INT_TYPE,$2),$4,construct_operation_node(BREAK,0));}
-      | CASE INTEGER ':' '{'statement_list  BREAK ';' '}'               {$$=construct_operation_node(CASE,3,construct_constant_node(INTEGER,INT_TYPE,$2),$5,construct_operation_node(BREAK,0));}
+      /* | CASE INTEGER ':' '{'statement_list  BREAK ';' '}'               {$$=construct_operation_node(CASE,3,construct_constant_node(INTEGER,INT_TYPE,$2),$5,construct_operation_node(BREAK,0));} */
 
       ;
 
@@ -196,7 +199,7 @@ for_mid_stmt:
   | expression { $$ = $1; }
   ;
 
-assignment_statement: VARIABLE '=' function_call %prec FUNC { $$ = construct_operation_node('=', 2, construct_identifier_node($1), $3); }
+assignment_statement: VARIABLE '=' function_call %prec FUNC { printf("fdhf\n");$$ = construct_operation_node('=', 2, construct_identifier_node($1), $3); }
                     | VARIABLE '=' rhs_nested_expression    { $$ = construct_operation_node('=', 2, construct_identifier_node($1), $3); }
   ;
 
@@ -208,6 +211,8 @@ for_assignment:
 declaration_statement: data_type VARIABLE                                             {     $$ = construct_decleration_node($2, $1); }
                     | data_type VARIABLE '=' rhs_nested_expression                    { $$ = construct_operation_node('=', 2, construct_decleration_node($2, $1), $4); }
                     | CONST data_type VARIABLE '=' rhs_nested_expression              { $$ = construct_operation_node('=', 2, construct_decleration_node($3, $2,CONST), $5); }
+                    /* | CONST data_type VARIABLE   '='    function_call %prec FUNC          { $$ = construct_operation_node('=', 2, construct_decleration_node($3, $2,CONST), $5); } */
+                    /* | data_type VARIABLE '='  function_call %prec FUNC                            { $$ = construct_operation_node('=', 2, construct_decleration_node($2, $1), $4); } */
                     ;
 
 data_type: INT_TYPE       { $$ = INT_TYPE; } 
@@ -225,7 +230,6 @@ for_declaration:
 rhs_nested_expression: expression                                          { $$ = $1; }
                       | VARIABLE '=' rhs_nested_expression                 { $$ = construct_operation_node('=', 2, construct_identifier_node($1), $3); }
                       | '(' VARIABLE '=' rhs_nested_expression ')'         { $$ = construct_operation_node('=', 2, construct_identifier_node($2), $4); }
-
                       ;
 
 statement_list: statement                                                   { $$ = $1; }
@@ -253,8 +257,8 @@ expression: INTEGER                                          { $$ = construct_co
           | expression EQUAL expression                      { $$ = construct_operation_node(EQUAL, 2, $1, $3); }
           | expression AND expression                        { $$ = construct_operation_node(AND, 2, $1, $3); }
           | expression OR expression                         { $$ = construct_operation_node(OR, 2, $1, $3); }
-          | '(' expression ')'                               { $$ = $2; }          ;
-  /* End of Production Rules */
+          | '(' expression ')'                               { $$ = $2; }         
+;  /* End of Production Rules */
 
 %%
 /* type is the token in bison i defined before  */
@@ -271,6 +275,8 @@ Node *construct_constant_node(int type, int dataType, ...) {
 
   /* copy information */
   p->type = CONSTANT;
+    p->line= line; // Set the line number for error reporting
+
   p->con.dataType = dataType;
   va_start(ap, dataType);
   p->con.value = va_arg(ap, ValueType);
@@ -288,6 +294,7 @@ Node *construct_identifier_node(char* i, int dataType, int qualifier) {
 
   /* copy information */
   p->type = IDENTIFIER;
+  p->line= line; // Set the line number for error reporting
   p->id.name = strdup(i);
   p->id.dataType = dataType;
   p->id.qualifier = qualifier;
@@ -310,6 +317,7 @@ Node *construct_operation_node(int oper, int nops, ...) {
 
   /* copy information */
   p->type = OPERATION;
+  p->line= line; // Set the line number for error reporting
   p->opr.symbol = oper;
   p->opr.nops = nops;
   va_start(ap, nops);
@@ -353,111 +361,6 @@ void yyerror(const char *msg) {
 }
 
 
-void print_ast(Node *node, int indent) {
-    if (node == NULL) return;
-
-    // Print indentation
-    for (int i = 0; i < indent; i++) printf("  ");
-
-    // Print node type
-    switch (node->type) {
-        case CONSTANT:
-            printf("Constant: ");
-            switch (node->con.dataType) {
-                case INT_TYPE: printf("%d (int)\n", node->con.value.intVal); break;
-                case FLOAT_TYPE: printf("%f (float)\n", node->con.value.floatVal); break;
-                case BOOL_TYPE: printf("%s (bool)\n", node->con.value.boolVal ? "true" : "false"); break;
-                case STRING_TYPE: printf("\"%s\" (string)\n", node->con.value.strVal); break;
-                default: printf("Unknown constant type\n");
-            }
-            break;
-
-        case IDENTIFIER:
-            printf("Identifier: %s\t", node->id.name);
-            printf("Data Type: ");
-            switch (node->id.dataType) {
-                case INT_TYPE: printf("int\t"); break;
-                case FLOAT_TYPE: printf("float\t"); break;
-                case BOOL_TYPE: printf("bool\t"); break;
-                case STRING_TYPE: printf("string\t"); break;
-                case VOID_TYPE: printf("void\t"); break;
-                default: printf("Unknown data type\t");
-            }
-            printf("Qualifier: ");
-            switch (node->id.qualifier) {
-                case CONST: printf("const\n"); break;
-                case INT_TYPE: printf("int\n"); break;
-                case FLOAT_TYPE: printf("float\n"); break;
-                case BOOL_TYPE: printf("bool\n"); break;
-                case STRING_TYPE: printf("string\n"); break;
-                default: printf("Unknown qualifier\n");
-            }
-            break;
-        case DECLARATION:
-            printf("Declaration: %s\t", node->dec.symbol);
-            printf("Data Type: ");
-            switch (node->dec.dataType) {
-                case INT_TYPE: printf("int\t"); break;
-                case FLOAT_TYPE: printf("float\t"); break;
-                case BOOL_TYPE: printf("bool\t"); break;
-                case STRING_TYPE: printf("string\t"); break;
-                case VOID_TYPE: printf("void\t"); break;
-                default: printf("Unknown data type\t");
-            }
-            printf("Qualifier: ");
-            switch (node->dec.qualifier) {
-                case CONST: printf("const\n"); break;
-                case INT_TYPE: printf("int\n"); break;
-                case FLOAT_TYPE: printf("float\n"); break;
-                case BOOL_TYPE: printf("bool\n"); break;
-                case STRING_TYPE: printf("string\n"); break;
-                default: printf("Unknown qualifier\n");
-            }
-            break;
-        case OPERATION:
-            printf("Operator: ");
-            switch (node->opr.symbol) {
-                case '+': printf("+\n"); break;
-                case '-': printf("-\n"); break;
-                case '*': printf("*\n"); break;
-                case '/': printf("/\n"); break;
-                case '%': printf("%%\n"); break;
-                case '=': printf("=\n"); break;
-                case PRINT: printf("PRINT\n"); break;
-                case IF: printf("IF\n"); break;
-                case WHILE: printf("WHILE\n"); break;
-                case DO: printf("DO-WHILE\n"); break;
-                case FOR: printf("FOR\n"); break;
-                case SWITCH: printf("SWITCH\n"); break;
-                case CASE: printf("CASE\n"); break;
-                case DEFAULT: printf("DEFAULT\n"); break;
-                case BLOCK: printf("BLOCK\n"); break;
-                case RETURN: printf("RETURN\n"); break;
-                case CALL: printf("FUNCTION CALL\n"); break;
-                case FUNCTION: printf("FUNCTION DECL\n"); break;
-                case COMMA: printf("COMMA\n"); break;
-                case NEGATIVE: printf("NEGATIVE\n"); break;
-                case NOT: printf("NOT\n"); break;
-                case AND: printf("AND\n"); break;
-                case OR: printf("OR\n"); break;
-                case EQUAL: printf("EQUAL\n"); break;
-                case NOT_EQUAL: printf("NOT_EQUAL\n"); break;
-                case GREATER_EQUAL: printf("GREATER_EQUAL\n"); break;
-                case LESS_EQUAL: printf("LESS_EQUAL\n"); break;
-                case '<': printf("<\n"); break;
-                case '>': printf(">\n"); break;
-                case BREAK: printf("BREAK\n"); break;
-                case CONTINUE: printf("CONTINUE\n"); break;
-                case ';': printf("SEQUENCE (;)\n"); break;
-                default: printf("Unknown operation: %d\n", node->opr.symbol);
-            }
-
-            for (int i = 0; i < node->opr.nops; ++i) {
-                print_ast(node->opr.op[i], indent + 1);
-            }
-            break;
-    }
-}
 
 
     Node *construct_decleration_node(char* name, int type, int qualifier) {
@@ -470,9 +373,13 @@ void print_ast(Node *node, int indent) {
 
         /* copy information */
         p->type = DECLARATION;
+          p->line= line; // Set the line number for error reporting
+
         p->dec.symbol = strdup(name);
         p->dec.dataType = type;
         p->dec.qualifier = qualifier;
         return p;
     }
+    
+
     
