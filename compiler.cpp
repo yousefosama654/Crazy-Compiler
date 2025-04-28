@@ -185,7 +185,7 @@ int use_symbol(char *name, Scope scope, int line, bool flag)
         {
             if (symbol->name == name)
             {
-                if (symbol->isInitialized == false && !flag)
+                if ((symbol->isInitialized == false && !flag))
                 {
                     char msg[1024];
                     sprintf(msg, "warning: variable %s not initialized in scope %d\n", name, scope.level);
@@ -410,7 +410,11 @@ int begin_compile(Node *p, Scope scope_level, bool flag, int brk, int cont, int 
         {
             add_argument(funcName, p->dec.symbol, p->dec.dataType, p->dec.qualifier, scope_level);
         }
-        add_symbol(p->dec.symbol, p->dec.dataType, p->dec.qualifier, scope_level, false, false, p->line);
+        if (isFunction == 0)
+            add_symbol(p->dec.symbol, p->dec.dataType, p->dec.qualifier, scope_level, false, false, p->line);
+        else
+            add_symbol(p->dec.symbol, p->dec.dataType, p->dec.qualifier, scope_level, false, true, p->line);
+
         return p->dec.dataType;
         break;
     }

@@ -1,26 +1,28 @@
-push (int) 0
-pop i
-L0
-push i
-push (int) 5
-lt
+proc func1
+push x
+push (int) 1
+eq
 jz L1
-push i
-push (int) 3
-eq
-jz L3
-jmp L0
-jmp L2
-L3
-push i
-push (int) 4
-eq
-jz L4
-jmp L1
-L4
-L2
-push i
-post inc
-pop i
+push (string) "1"
+pop y
 jmp L0
 L1
+push x
+push (int) 2
+eq
+jz L3
+push (string) "2"
+pop y
+jmp L2
+L3
+push (string) "3"
+pop y
+L2
+L0
+push x
+ret
+endproc	
+push (string) "dfs"
+push (int) 3
+call func1
+pop n
