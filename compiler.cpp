@@ -174,7 +174,7 @@ void add_scope(Scope *scope)
     }
 }
 
-int use_symbol(char *name, Scope scope, int line)
+int use_symbol(char *name, Scope scope, int line, bool flag)
 {
     // check if varibable is already declared in the current scope or any parent scope
     // get all parent scopes
@@ -185,14 +185,15 @@ int use_symbol(char *name, Scope scope, int line)
         {
             if (symbol->name == name)
             {
-                if (symbol->isInitialized == false)
+                if (symbol->isInitialized == false && !flag)
                 {
                     char msg[1024];
                     sprintf(msg, "warning: variable %s not initialized in scope %d\n", name, scope.level);
                     log_errors(line, msg);
                 }
-                symbol->used = true; // mark as used
-                return symbol->type; // return type
+                if (!flag)
+                    symbol->used = true; // mark as used
+                return symbol->type;     // return type
             }
         }
 
@@ -395,9 +396,11 @@ int begin_compile(Node *p, Scope scope_level, bool flag, int brk, int cont, int 
     }
     case IDENTIFIER:
     {
-        int type = use_symbol(p->id.name, scope_level, p->line);
+        int type = use_symbol(p->id.name, scope_level, p->line, flag);
         if (!flag)
+        {
             fprintf(fp, "push %s\n", p->id.name);
+        }
         return type;
         break;
     }

@@ -1,9 +1,6 @@
-push x
+proc rec
 push (int) 3
-eq
-jz L1
-push (string) "F"
-print (string)
-jmp L0
-L1
-L0
+pop y
+push y
+ret
+endproc	

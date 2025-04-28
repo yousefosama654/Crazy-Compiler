@@ -1,7 +1,8 @@
 Variables:
-Scope 0:
-	Name: x, Type: int, isConst: 0 isUsed: 1, isIntilized: 0
-Scope 2:
+Scope 1:
 	Name: x, Type: int, isConst: 0 isUsed: 0, isIntilized: 0
+	Name: y, Type: int, isConst: 0 isUsed: 1, isIntilized: 1
 
 Functions:
+Name: rec, Return Type: int used: 0
+	Arg Name: x, Type: int

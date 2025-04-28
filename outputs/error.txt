@@ -1,2 +1,0 @@
-Line 2: warning: variable x not initialized in scope 0
-
