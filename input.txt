@@ -1,13 +1,7 @@
-# Declare all types
-#int
-int x = 5;
-#float
-float y = 3.87;
-#string
-string z = " hello world ";
-#bool
-bool is = true;
-
-#constant
-const int re = 100;
-#x=3;
+int x;
+if(x==3)
+{
+print("F");}
+else
+{int x;
+}

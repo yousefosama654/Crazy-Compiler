@@ -19,7 +19,7 @@ void log_errors(int l, const char *msg)
         fprintf(ef, "Error: couldn't open error.txt for writing.\n");
         return;
     }
-    if (string(msg).find("Semantic ERROR") != string::npos || string(msg).find("Warning") != string::npos)
+    if (string(msg).find("Semantic ERROR") != string::npos || string(msg).find("warning") != string::npos)
     {
         fprintf(ef, "Line %d: %s\n", l, msg);
         return;
@@ -188,7 +188,7 @@ int use_symbol(char *name, Scope scope, int line)
                 if (symbol->isInitialized == false)
                 {
                     char msg[1024];
-                    sprintf(msg, "WArining: variable %s not initialized in scope %d\n", name, scope.level);
+                    sprintf(msg, "warning: variable %s not initialized in scope %d\n", name, scope.level);
                     log_errors(line, msg);
                 }
                 symbol->used = true; // mark as used
