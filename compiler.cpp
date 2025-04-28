@@ -32,7 +32,7 @@ void log_errors(int l, const char *msg)
 
     string lineText, lastValidLine;
     int currentLine = 1, lastValidLineNumber = 0;
-    while (getline(input, lineText) && currentLine < l)
+    while (getline(input, lineText) && currentLine <= l)
     {
         const char *raw = lineText.c_str();
         while (*raw == ' ' || *raw == '\t')
@@ -60,7 +60,7 @@ void log_errors(int l, const char *msg)
         len = trimmedStr.length();
 
         // check if the last character is a semicolon
-
+         printf("Trimmed string: %s %d\n", trimmedStr.c_str(),currentLine);
         if (len >= 2 && trimmedStr[len - 1] != ';')
         {
             fprintf(ef, "syntax error at line %d\n", lastValidLineNumber);

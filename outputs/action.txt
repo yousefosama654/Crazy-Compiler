@@ -1,20 +1,35 @@
-push (int) 0
-pop i
-L0
-push i
-push (int) 10
-lt
-jz L1
-push (int) 0
-pop a
-push (int) 0
-pop b
-push a
-push b
-add
-pop c
-push i
-post inc
-pop i
+push (int) 3
+pop x
+L2:
+push x
+push (int) 1
+	compEQ
+jz L3
+push (int) 1
+pop x
 jmp L0
-L1
+L3:
+push x
+push (int) 2
+	compEQ
+jz L4
+push (int) 2
+pop x
+push (int) 2
+pop y
+push (string) "fvd"
+print (string)
+jmp L0
+L4:
+push x
+push (int) 3
+	compEQ
+ jz L1
+push (int) 3
+pop x
+jmp L0
+L1:
+push (int) 0
+pop x
+jmp L0
+L0:
