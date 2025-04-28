@@ -1,0 +1,9 @@
+int x;
+if(x==3)
+{
+    print("F");
+}
+else
+{
+    int x;
+}

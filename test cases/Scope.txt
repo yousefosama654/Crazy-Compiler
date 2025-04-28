@@ -1,0 +1,19 @@
+int y = 1;
+
+int x ;
+
+if(x == 3)
+{
+    print("yello");
+}
+else{
+    {
+        {
+            {
+                int x=3 ;
+                print(x);
+            }
+        }
+}
+}
+print(x);

@@ -1,2 +1,2 @@
-Line 2: warning: variable x not initialized in scope 0
+Line 4: warning: variable y not initialized in scope 1
 
