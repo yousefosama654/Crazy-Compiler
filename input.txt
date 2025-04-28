@@ -1,6 +1,2 @@
-def int rec(int x)
-{
-    int y ;
-    y= 3;
-    return y;
-}
+int x =3;
+int y;

@@ -1,6 +1,2 @@
-proc rec
 push (int) 3
-pop y
-push y
-ret
-endproc	
+pop x

@@ -1,0 +1,6 @@
+def int rec(int x)
+{
+    int y ;
+    y= rec(3);
+    return y;
+}
