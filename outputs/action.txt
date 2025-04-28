@@ -1,28 +1,73 @@
-proc func1
-push x
-push (int) 1
-eq
-jz L1
-push (string) "1"
-pop y
-jmp L0
-L1
-push x
-push (int) 2
-eq
-jz L3
-push (string) "2"
-pop y
-jmp L2
-L3
-push (string) "3"
-pop y
-L2
-L0
-push x
+proc add
+push (int) 10
+pop b
+push (int) 20
+pop c
+push a
+push b
+add
+push c
+add
 ret
 endproc	
-push (string) "dfs"
+proc power
+push (int) 2
+pop exp
+push (float) 1.000000
+pop res
+push (int) 0
+pop i
+L0
+push i
+push exp
+lt
+jz L1
+push res
+push base
+mul
+pop res
+push i
+post inc
+pop i
+jmp L0
+L1
+push res
+ret
+endproc	
+proc is_even
+push n
+push (int) 2
+mod
+push (int) 0
+eq
+ret
+endproc	
+proc toggle
+push (bool) 1
+pop v
+push v
+not
+ret
+endproc	
 push (int) 3
-call func1
-pop n
+pop i
+push (int) 3
+push (float) 2.000000
+call power
+pop f
+push (bool) 0
+call toggle
+pop flag2
+push (int) 5
+pop scoped
+push (int) 10
+pop scoped
+push i
+push scoped
+add
+pop i
+push (int) 3
+push (int) 2
+push (int) 1
+call add
+pop scoped

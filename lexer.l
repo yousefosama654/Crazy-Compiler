@@ -30,12 +30,12 @@
 "int"                       { return INT_TYPE;    }
 "float"                     { return FLOAT_TYPE;  }
 "string"                    { return STRING_TYPE; }
+"char"                      { return CHAR_TYPE;   }
 "bool"                      { return BOOL_TYPE;   }
 "void"                      { return VOID_TYPE;   }
 
 "print"                     { return PRINT;  }
 "return"                    { return RETURN; }
-
 
 [-()<>=+*/%{}.:;,]             { return yytext[0]; }
 
@@ -43,6 +43,16 @@
 "<="                        { return LESS_EQUAL;    }
 "=="                        { return EQUAL;         } 
 "!="                        { return NOT_EQUAL;      }
+
+"&"                          { return BITWISE_AND;  }
+"|"                         { return BITWISE_OR;   }
+"^"                         { return BITWISE_XOR;      }
+"~"                         { return BITWISE_NOT;  }
+"<<"                        { return SHIFT_LEFT;   }
+">>"                        { return SHIFT_RIGHT;  }
+
+
+
 
 "and"                       { return AND;           }
 "or"                        { return OR;            }
@@ -77,6 +87,9 @@
 \".*\"                      {
                               yylval.stringValue = strdup(yytext);
                               return STRING;    }
+'([^'])'                   {   yylval.charValue = yytext[1];
+                              return CHAR;      }
+
 
 [ \t\r]+  { /* ignore whitespace */ }
 \n        { line++; }

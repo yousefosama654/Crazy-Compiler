@@ -89,6 +89,8 @@ char *get_type(int type)
         return "bool";
     case STRING_TYPE:
         return "string";
+    case CHAR_TYPE:
+        return "char";
     case VOID_TYPE:
         return "void";
     default:
@@ -286,16 +288,17 @@ void print_symbol_table()
         for (auto &symbol : symbols)
         {
             fprintf(sf, "Name: %s, Return Type: %s used: %d\n", symbol->name.c_str(), get_type(symbol->returnType), symbol->used);
+            int i = 0;
             for (auto &arg : symbol->argTypes)
             {
-                fprintf(sf, "\tArg Name: %s, Type: %s\n", arg.name.c_str(), get_type(arg.type));
+                fprintf(sf, "\tArg Name: %s, Type: %s \n", arg.name.c_str(), get_type(arg.type));
             }
         }
     }
     fclose(sf);
 }
 
-void add_argument(char *name, char *argName, int type, int qualifier, Scope scope)
+void add_argument(char *name, char *argName, int type, int qualifier, Scope scope,bool isdeafult)
 {
     Scope *current_scope = &scope;
     while (current_scope != nullptr)
@@ -309,6 +312,8 @@ void add_argument(char *name, char *argName, int type, int qualifier, Scope scop
                 s.type = type;
                 s.Qualfier = qualifier;
                 symbol->argTypes.push_back(s);
+                printf("insidedefault %d\n", isdeafult);
+                symbol->isdefault.push_back(isdeafult);
                 return;
             }
         }
@@ -327,7 +332,7 @@ int check_function(char *name, Scope scope, int line, vector<int> arg_types)
             if (symbol->name == name)
             {
                 symbol->used = true; // mark as used
-                // check arguments of function match the call and their types
+                check arguments of function match the call and their types
                 if (symbol->argTypes.size() != arg_types.size())
                 {
                     char msg[1024];
@@ -346,6 +351,16 @@ int check_function(char *name, Scope scope, int line, vector<int> arg_types)
                             log_errors(line, msg);
                         }
                     }
+                    // while(j < symbol->argTypes.size())
+                    // {
+                    //     if (symbol->isdefault[j] == false)
+                    //     {
+                    //         char msg[1024];
+                    //         sprintf(msg, "Semantic ERROR: function %s argument type mismatch\n", name);
+                    //         log_errors(line, msg);
+                    //     }
+                    //     j++;
+                    // }
                 }
 
                 return symbol->returnType; // return type
@@ -357,7 +372,7 @@ int check_function(char *name, Scope scope, int line, vector<int> arg_types)
     sprintf(msg, "Semantic ERROR: function %s not declared in scope %d\n", name, scope.level);
     log_errors(line, msg);
 }
-int begin_compile(Node *p, Scope scope_level, bool flag, int brk, int cont, int isFunction, char *funcName)
+int begin_compile(Node *p, Scope scope_level, bool flag, int brk, int cont, int isFunction, char *funcName,bool *isdefault)
 {
     // open action files
     open_file();
@@ -369,6 +384,8 @@ int begin_compile(Node *p, Scope scope_level, bool flag, int brk, int cont, int 
     {
     case CONSTANT:
     {
+        if(isFunction==1)
+            isdefault = new bool(true);
         switch (p->con.dataType)
         {
 
@@ -387,6 +404,10 @@ int begin_compile(Node *p, Scope scope_level, bool flag, int brk, int cont, int 
         case STRING_TYPE:
             fprintf(fp, "push (%s) %s\n", get_type(p->con.dataType), p->con.value.strVal);
             return STRING_TYPE;
+            break;
+        case CHAR_TYPE:
+            fprintf(fp, "push (%s) %c\n", get_type(p->con.dataType), p->con.value.charVal);
+            return CHAR_TYPE;
             break;
         default:
             return p->con.dataType;
@@ -408,7 +429,11 @@ int begin_compile(Node *p, Scope scope_level, bool flag, int brk, int cont, int 
     {
         if (isFunction == 1)
         {
-            add_argument(funcName, p->dec.symbol, p->dec.dataType, p->dec.qualifier, scope_level);
+            add_argument(funcName, p->dec.symbol, p->dec.dataType, p->dec.qualifier, scope_level,*isdefault);
+            printf("default %d\n", *isdefault);
+            isdefault = new bool(false);
+            printf("default %d\n", *isdefault);
+
         }
         if (isFunction == 0)
             add_symbol(p->dec.symbol, p->dec.dataType, p->dec.qualifier, scope_level, false, false, p->line);
@@ -426,7 +451,7 @@ int begin_compile(Node *p, Scope scope_level, bool flag, int brk, int cont, int 
 
         case PRINT:
         {
-            int op = begin_compile(p->opr.op[0], scope_level, 0, brk, cont, isFunction, funcName);
+            int op = begin_compile(p->opr.op[0], scope_level, 0, brk, cont, isFunction, funcName,isdefault);
             fprintf(fp, "print (%s)\n", get_type(op));
             return 0;
             break;
@@ -443,20 +468,20 @@ int begin_compile(Node *p, Scope scope_level, bool flag, int brk, int cont, int 
                 {
                     if (n->opr.symbol == COMMA)
                     {
-                        int t1 = begin_compile(n->opr.op[1], scope_level, 0, brk, cont, isFunction, funcName);
+                        int t1 = begin_compile(n->opr.op[1], scope_level, 0, brk, cont, isFunction, funcName,isdefault);
                         argTypes.push_back(t1);
                         n = n->opr.op[0];
                     }
                 }
                 else if (n->type == IDENTIFIER)
                 {
-                    int t1 = begin_compile(n, scope_level, 0, brk, cont, isFunction, funcName);
+                    int t1 = begin_compile(n, scope_level, 0, brk, cont, isFunction, funcName,isdefault);
                     argTypes.push_back(t1);
                     n = NULL;
                 }
                 else if (n->type == CONSTANT)
                 {
-                    int t1 = begin_compile(n, scope_level, 0, brk, cont, isFunction, funcName);
+                    int t1 = begin_compile(n, scope_level, 0, brk, cont, isFunction, funcName,isdefault);
                     argTypes.push_back(t1);
                     n = NULL;
                 }
@@ -479,18 +504,18 @@ int begin_compile(Node *p, Scope scope_level, bool flag, int brk, int cont, int 
             // compile the block
             for (int i = 0; i < p->opr.nops; i++)
             {
-                begin_compile(p->opr.op[i], *new_scope, 0, brk, cont, isFunction, funcName);
+                begin_compile(p->opr.op[i], *new_scope, 0, brk, cont, isFunction, funcName,isdefault);
             }
             break;
         }
         case COMMA:
 
-            begin_compile(p->opr.op[0], scope_level, 0, brk, cont, isFunction, funcName);
-            begin_compile(p->opr.op[1], scope_level, 0, brk, cont, isFunction, funcName);
+            begin_compile(p->opr.op[0], scope_level, 0, brk, cont, isFunction, funcName,isdefault);
+            begin_compile(p->opr.op[1], scope_level, 0, brk, cont, isFunction, funcName,isdefault);
             break;
         case NOT:
         {
-            int op = begin_compile(p->opr.op[0], scope_level, 0, brk, cont, isFunction, funcName);
+            int op = begin_compile(p->opr.op[0], scope_level, 0, brk, cont, isFunction, funcName,isdefault);
             if (op != BOOL_TYPE)
             {
                 char msg[1024];
@@ -504,14 +529,14 @@ int begin_compile(Node *p, Scope scope_level, bool flag, int brk, int cont, int 
         case ';':
         {
             for (int i = 0; i < p->opr.nops; i++)
-                begin_compile(p->opr.op[i], scope_level, 0, brk, cont, isFunction, funcName);
+                begin_compile(p->opr.op[i], scope_level, 0, brk, cont, isFunction, funcName,isdefault);
             return VOID_TYPE;
             break;
         }
         case IF:
         {
 
-            int if_expr = begin_compile(p->opr.op[0], scope_level, 0, brk, cont, isFunction, funcName);
+            int if_expr = begin_compile(p->opr.op[0], scope_level, 0, brk, cont, isFunction, funcName,isdefault); // condition
             if (if_expr != BOOL_TYPE)
             {
                 char msg[1024];
@@ -527,7 +552,7 @@ int begin_compile(Node *p, Scope scope_level, bool flag, int brk, int cont, int 
                 int end = label;
                 fprintf(fp, "jz L%d\n", label++);
 
-                begin_compile(p->opr.op[1], *new_scope, 0, brk, cont, isFunction, funcName);
+                begin_compile(p->opr.op[1], *new_scope, 0, brk, cont, isFunction, funcName,isdefault); // if body
 
                 fprintf(fp, "L%d\n", end);
             }
@@ -536,12 +561,12 @@ int begin_compile(Node *p, Scope scope_level, bool flag, int brk, int cont, int 
                 int l2 = label++;
                 int end = label;
                 fprintf(fp, "jz L%d\n", label++);
-                begin_compile(p->opr.op[1], *new_scope, 0, brk, cont, isFunction, funcName); // if body
+                begin_compile(p->opr.op[1], *new_scope, 0, brk, cont, isFunction, funcName,isdefault); // if body
                 fprintf(fp, "jmp L%d\n", l2);                                                // jump to end of if
                 fprintf(fp, "L%d\n", end);
                 Scope *new_scope2 = new Scope(++level, &scope_level);
                 add_scope(new_scope2);
-                begin_compile(p->opr.op[2], *new_scope2, 0, brk, cont, isFunction, funcName); // else body
+                begin_compile(p->opr.op[2], *new_scope2, 0, brk, cont, isFunction, funcName,isdefault); // else body
                 fprintf(fp, "L%d\n", l2);                                                     // end of if
             }
             return 0;
@@ -552,11 +577,11 @@ int begin_compile(Node *p, Scope scope_level, bool flag, int brk, int cont, int 
 
             Scope *new_scope = new Scope(++level, &scope_level);
             add_scope(new_scope);
-            begin_compile(p->opr.op[0], *new_scope, 0, brk, cont, isFunction, funcName); // initialize
+            begin_compile(p->opr.op[0], *new_scope, 0, brk, cont, isFunction, funcName,isdefault); // initialize
             int l1 = label++;
             fprintf(fp, "L%d\n", l1);
 
-            int cond = begin_compile(p->opr.op[1], *new_scope, 0, brk, cont, isFunction, funcName); // condition
+            int cond = begin_compile(p->opr.op[1], *new_scope, 0, brk, cont, isFunction, funcName,isdefault); // condition
             if (cond != BOOL_TYPE)
             {
                 log_errors(p->line, "Semantic ERROR: Condition must be of a BOOL Value");
@@ -565,8 +590,8 @@ int begin_compile(Node *p, Scope scope_level, bool flag, int brk, int cont, int 
             int l2 = label++;
             fprintf(fp, "jz L%d\n", l2);
 
-            begin_compile(p->opr.op[3], *new_scope, 0, l2, l1, isFunction, funcName);    // body
-            begin_compile(p->opr.op[2], *new_scope, 0, brk, cont, isFunction, funcName); // next iter inc/dec
+            begin_compile(p->opr.op[3], *new_scope, 0, l2, l1, isFunction, funcName,isdefault);    // body
+            begin_compile(p->opr.op[2], *new_scope, 0, brk, cont, isFunction, funcName,isdefault); // next iter inc/dec
             fprintf(fp, "jmp L%d\n", l1);                                                // jump to condition
             fprintf(fp, "L%d\n", l2);                                                    // end of loop
             break;
@@ -602,7 +627,7 @@ int begin_compile(Node *p, Scope scope_level, bool flag, int brk, int cont, int 
 
                 fprintf(fp, "push %s\n", switch_var->id.name);
 
-                begin_compile(n->opr.op[0], scope_level, 0, brk, cont, isFunction, funcName); // push the case constant
+                begin_compile(n->opr.op[0], scope_level, 0, brk, cont, isFunction, funcName,isdefault); // push the case constant
                 fprintf(fp, "\tcompEQ\n");
 
                 if (last_case)
@@ -623,7 +648,7 @@ int begin_compile(Node *p, Scope scope_level, bool flag, int brk, int cont, int 
                 Scope *new_scope = new Scope(++level, &scope_level);
                 add_scope(new_scope);
 
-                begin_compile(n->opr.op[1], *new_scope, 0, brk, cont, isFunction, funcName); // execute case body
+                begin_compile(n->opr.op[1], *new_scope, 0, brk, cont, isFunction, funcName,isdefault); // execute case body
                 fprintf(fp, "jmp L%d\n", endLabel);
 
                 if (last_case)
@@ -642,7 +667,7 @@ int begin_compile(Node *p, Scope scope_level, bool flag, int brk, int cont, int 
                 fprintf(fp, "L%d:\n", defaultLabel);
                 Scope *new_scope = new Scope(++level, &scope_level);
                 add_scope(new_scope);
-                begin_compile(p->opr.op[2]->opr.op[0], *new_scope, 0, brk, cont, isFunction, funcName); // default case body
+                begin_compile(p->opr.op[2]->opr.op[0], *new_scope, 0, brk, cont, isFunction, funcName,isdefault); // default case body
                 fprintf(fp, "jmp L%d\n", endLabel);
             }
 
@@ -658,11 +683,11 @@ int begin_compile(Node *p, Scope scope_level, bool flag, int brk, int cont, int 
             add_func(p->opr.op[0]->id.name, p->opr.op[0]->dec.dataType, vector<Symbol>(), scope_level, p->line); // add function to symbol table
             if (p->opr.op[1])
             {
-                begin_compile(p->opr.op[1], *new_scope, 0, brk, cont, 1, p->opr.op[0]->id.name); // function arguments
+                begin_compile(p->opr.op[1], *new_scope, 0, brk, cont, 1, p->opr.op[0]->id.name,isdefault); // function arguments
             }
 
-            begin_compile(p->opr.op[2], *new_scope, 0, brk, cont, isFunction, funcName);               // function body
-            int ret_typ = begin_compile(p->opr.op[3], *new_scope, 0, brk, cont, isFunction, funcName); // return statement
+            begin_compile(p->opr.op[2], *new_scope, 0, brk, cont, isFunction, funcName,isdefault);               // function body
+            int ret_typ = begin_compile(p->opr.op[3], *new_scope, 0, brk, cont, isFunction, funcName,isdefault); // return statement
             // printf("return type and dec type %s %s", get_type(ret_typ), get_type(p->opr.op[0]->dec.dataType));
             if (ret_typ != p->opr.op[0]->dec.dataType)
             {
@@ -677,7 +702,7 @@ int begin_compile(Node *p, Scope scope_level, bool flag, int brk, int cont, int 
 
         {
 
-            int t = begin_compile(p->opr.op[0], scope_level, 0, brk, cont, isFunction, funcName); // return statement
+            int t = begin_compile(p->opr.op[0], scope_level, 0, brk, cont, isFunction, funcName,isdefault); // return statement
             if (t != VOID_TYPE)
                 fprintf(fp, "ret\n");
             fprintf(fp, "endproc\t\n");
@@ -703,8 +728,8 @@ int begin_compile(Node *p, Scope scope_level, bool flag, int brk, int cont, int 
             int l2 = label++;
             fprintf(fp, "L%d\n", l1);
 
-            begin_compile(p->opr.op[0], *new_scope, 0, l2, l1, isFunction, funcName);                // body
-            int cond = begin_compile(p->opr.op[1], scope_level, 0, brk, cont, isFunction, funcName); // condition
+            begin_compile(p->opr.op[0], *new_scope, 0, l2, l1, isFunction, funcName,isdefault);                // body
+            int cond = begin_compile(p->opr.op[1], scope_level, 0, brk, cont, isFunction, funcName,isdefault); // condition
             if (cond != BOOL_TYPE)
             {
                 log_errors(p->line, "Semantic ERROR: Condition must be of a BOOL value");
@@ -722,7 +747,7 @@ int begin_compile(Node *p, Scope scope_level, bool flag, int brk, int cont, int 
             int l1 = label;
             fprintf(fp, "L%d\n", label++);
 
-            int type1 = begin_compile(p->opr.op[0], scope_level, 0, brk, cont, isFunction, funcName); // condition
+            int type1 = begin_compile(p->opr.op[0], scope_level, 0, brk, cont, isFunction, funcName,isdefault); // condition
             if (type1 != BOOL_TYPE)
             {
                 log_errors(p->line, "semantic ERROR: Conditions must be of a BOOL Value");
@@ -730,7 +755,7 @@ int begin_compile(Node *p, Scope scope_level, bool flag, int brk, int cont, int 
             int l2 = label++;
             fprintf(fp, "jz L%d\n", l2);
 
-            begin_compile(p->opr.op[1], scope_level, 0, l2, l1, isFunction, funcName); // body
+            begin_compile(p->opr.op[1], scope_level, 0, l2, l1, isFunction, funcName,isdefault); // body
 
             fprintf(fp, "jmp L%d\n", l1);
 
@@ -740,7 +765,7 @@ int begin_compile(Node *p, Scope scope_level, bool flag, int brk, int cont, int 
         }
         case NEGATIVE:
         {
-            int op = begin_compile(p->opr.op[0], scope_level, 0, brk, cont, isFunction, funcName);
+            int op = begin_compile(p->opr.op[0], scope_level, 0, brk, cont, isFunction, funcName,isdefault);
             if (op != INT_TYPE && op != FLOAT_TYPE)
             {
                 char msg[1024];
@@ -751,10 +776,24 @@ int begin_compile(Node *p, Scope scope_level, bool flag, int brk, int cont, int 
             return op;
             break;
         }
+        case BITWISE_NOT:
+        {
+            int op1 = begin_compile(p->opr.op[0], scope_level, 0, brk, cont, isFunction, funcName,isdefault);
+
+            if (op1 != INT_TYPE)
+            {
+                char msg[1024];
+                sprintf(msg, "cannot compare operands of type %s", get_type(op1));
+                log_errors(p->line, msg);
+            }
+            fprintf(fp, "bitwise_not\n");
+            return INT_TYPE;
+            break;
+        }
         case POST_INCREMENT:
         {
-            int op = begin_compile(p->opr.op[0], scope_level, 0, brk, cont, isFunction, funcName);
-            if (op != INT_TYPE && op != FLOAT_TYPE)
+            int op = begin_compile(p->opr.op[0], scope_level, 0, brk, cont, isFunction, funcName,isdefault);
+            if (op != INT_TYPE && op != FLOAT_TYPE && op != CHAR_TYPE)
             {
                 char msg[1024];
                 sprintf(msg, "Semantic ERROR: cannot apply unary increment to %s\n", get_type(op));
@@ -766,8 +805,8 @@ int begin_compile(Node *p, Scope scope_level, bool flag, int brk, int cont, int 
         }
         case POST_DECREMENT:
         {
-            int op = begin_compile(p->opr.op[0], scope_level, 0, brk, cont, isFunction, funcName);
-            if (op != INT_TYPE && op != FLOAT_TYPE)
+            int op = begin_compile(p->opr.op[0], scope_level, 0, brk, cont, isFunction, funcName,isdefault);
+            if (op != INT_TYPE && op != FLOAT_TYPE && op != CHAR_TYPE)
             {
                 char msg[1024];
                 sprintf(msg, "Semantic ERROR: cannot apply unary decrement to %s\n", get_type(op));
@@ -779,8 +818,8 @@ int begin_compile(Node *p, Scope scope_level, bool flag, int brk, int cont, int 
         }
         case PRE_INCREMENT:
         {
-            int op = begin_compile(p->opr.op[0], scope_level, 0, brk, cont, isFunction, funcName);
-            if (op != INT_TYPE && op != FLOAT_TYPE)
+            int op = begin_compile(p->opr.op[0], scope_level, 0, brk, cont, isFunction, funcName,isdefault);
+            if (op != INT_TYPE && op != FLOAT_TYPE && op != CHAR_TYPE)
             {
                 char msg[1024];
                 sprintf(msg, "Semantic ERROR: cannot apply unary increment to %s\n", get_type(op));
@@ -792,8 +831,8 @@ int begin_compile(Node *p, Scope scope_level, bool flag, int brk, int cont, int 
         }
         case PRE_DECREMENT:
         {
-            int op = begin_compile(p->opr.op[0], scope_level, 0, brk, cont, isFunction, funcName);
-            if (op != INT_TYPE && op != FLOAT_TYPE)
+            int op = begin_compile(p->opr.op[0], scope_level, 0, brk, cont, isFunction, funcName,isdefault);
+            if (op != INT_TYPE && op != FLOAT_TYPE && op != CHAR_TYPE)
             {
                 char msg[1024];
                 sprintf(msg, "Semantic ERROR: cannot apply unary decrement to %s\n", get_type(op));
@@ -806,10 +845,10 @@ int begin_compile(Node *p, Scope scope_level, bool flag, int brk, int cont, int 
 
         case '=':
         {
-            int ass = begin_compile(p->opr.op[1], scope_level, 0, brk, cont, isFunction, funcName);
+            int ass = begin_compile(p->opr.op[1], scope_level, 0, brk, cont, isFunction, funcName,isdefault);
             // int op1 = begin_compile(p->opr.op[0]);
             // check if op[0] is dec or id
-            int t = begin_compile(p->opr.op[0], scope_level, true, brk, cont, isFunction, funcName);
+            int t = begin_compile(p->opr.op[0], scope_level, true, brk, cont, isFunction, funcName,isdefault);
             if (p->opr.op[0]->type == DECLARATION)
             {
                 // Check if type is int and other is float
@@ -820,6 +859,10 @@ int begin_compile(Node *p, Scope scope_level, bool flag, int brk, int cont, int 
                 else if ((p->opr.op[0]->dec.dataType == FLOAT_TYPE && ass == INT_TYPE))
                 {
                     fprintf(fp, "convert from float to int\n");
+                }
+                else if ((p->opr.op[0]->dec.dataType == CHAR_TYPE && ass ==INT_TYPE ))
+                {
+                    fprintf(fp, "convert from int to char\n");
                 }
 
                 else if (p->opr.op[0]->dec.dataType != ass)
@@ -850,8 +893,8 @@ int begin_compile(Node *p, Scope scope_level, bool flag, int brk, int cont, int 
         }
         default:
         { // two operands
-            int op1 = begin_compile(p->opr.op[0], scope_level, 0, brk, cont, isFunction, funcName);
-            int op2 = begin_compile(p->opr.op[1], scope_level, 0, brk, cont, isFunction, funcName);
+            int op1 = begin_compile(p->opr.op[0], scope_level, 0, brk, cont, isFunction, funcName,isdefault);
+            int op2 = begin_compile(p->opr.op[1], scope_level, 0, brk, cont, isFunction, funcName,isdefault);
             if (op1 != op2)
             {
                 char msg[1024];
@@ -861,7 +904,7 @@ int begin_compile(Node *p, Scope scope_level, bool flag, int brk, int cont, int 
             switch (p->opr.symbol)
             {
             case '+':
-                if (op1 != INT_TYPE && op1 != FLOAT_TYPE)
+                if (op1 != INT_TYPE && op1 != FLOAT_TYPE && op1 != STRING_TYPE)
                 {
                     char msg[1024];
                     sprintf(msg, "cannot add operands of type %s", get_type(op1));
@@ -950,6 +993,58 @@ int begin_compile(Node *p, Scope scope_level, bool flag, int brk, int cont, int 
                 }
                 fprintf(fp, "le\n");
                 return BOOL_TYPE;
+                break;
+            case BITWISE_XOR:
+                if (op1 != INT_TYPE)
+                {
+                    char msg[1024];
+                    sprintf(msg, "cannot compare operands of type %s", get_type(op1));
+                    log_errors(p->line, msg);
+                }
+                fprintf(fp, "bitwise_xor\n");
+                return INT_TYPE;
+
+                break;
+            case BITWISE_AND:
+                if (op1 != INT_TYPE)
+                {
+                    char msg[1024];
+                    sprintf(msg, "cannot compare operands of type %s", get_type(op1));
+                    log_errors(p->line, msg);
+                }
+                fprintf(fp, "bitwise_and\n");
+                return INT_TYPE;
+                break;
+            case BITWISE_OR:
+                if (op1 != INT_TYPE)
+                {
+                    char msg[1024];
+                    sprintf(msg, "cannot compare operands of type %s", get_type(op1));
+                    log_errors(p->line, msg);
+                }
+                fprintf(fp, "bitwise_or\n");
+                return INT_TYPE;
+                break;
+
+            case SHIFT_LEFT:
+                if (op1 != INT_TYPE)
+                {
+                    char msg[1024];
+                    sprintf(msg, "cannot compare operands of type %s", get_type(op1));
+                    log_errors(p->line, msg);
+                }
+                fprintf(fp, "shift_left\n");
+                return INT_TYPE;
+                break;
+            case SHIFT_RIGHT:
+                if (op1 != INT_TYPE)
+                {
+                    char msg[1024];
+                    sprintf(msg, "cannot compare operands of type %s", get_type(op1));
+                    log_errors(p->line, msg);
+                }
+                fprintf(fp, "shift_right\n");
+                return INT_TYPE;
                 break;
             case NOT_EQUAL:
                 fprintf(fp, "ne\n");

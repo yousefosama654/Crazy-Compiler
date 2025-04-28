@@ -27,6 +27,7 @@
     Scope p_current_scope (0,NULL); // Global variable to keep track of the current scope
     //----------------------------------------------
     void print_ast(Node *node, int indent) ;
+    bool *f=new bool(false);
 %}
 /* End of Definitions */
 
@@ -35,6 +36,7 @@
   int intValue;                          /* integer  */
   float floatValue;                      /* double   */
   char* stringValue;                     /* string   */
+  char charValue;                      /* char     */
   bool boolValue;                        /* boolean  */
 
   char *sIndex;                       /* symbol table index */
@@ -60,6 +62,7 @@ Keyword     Description
 %token <intValue> INTEGER
 %token <floatValue> FLOAT
 %token <stringValue> STRING
+%token <charValue> CHAR
 %token <boolValue> BOOL
 
 %token <sIndex> VARIABLE
@@ -68,7 +71,7 @@ Keyword     Description
 %token IF                                                                /* Keywords for if statement */
 %token SWITCH CASE DEFAULT                                               /* Keywords for switch statement */
 %token FOR WHILE DO UNTIL BREAK CONTINUE                                       /* Keywords for loops */
-%token CONST INT_TYPE FLOAT_TYPE BOOL_TYPE STRING_TYPE  VOID_TYPE  DECLARE_ONLY           /* Keywords for data types */
+%token CONST INT_TYPE FLOAT_TYPE BOOL_TYPE STRING_TYPE  VOID_TYPE  DECLARE_ONLY CHAR_TYPE           /* Keywords for data types */
 %token FUNCTION                                                          /* Keyword for function declaration */
 %token PRINT                                                             /* Keyword for print */
 %token RETURN 
@@ -87,6 +90,7 @@ Keyword     Description
 %right '='
 %left OR
 %left AND
+%left SHIFT_RIGHT SHIFT_LEFT BITWISE_NOT BITWISE_XOR BITWISE_OR BITWISE_AND
 %left GREATER_EQUAL LESS_EQUAL EQUAL NOT_EQUAL '>' '<'
 %left '+' '-'
 %left '*' '/' '%'
@@ -111,7 +115,7 @@ Keyword     Description
 program: functions      { /*last thing to finish check_unused_variables(); */}
         ;
 
-functions: functions statement { begin_compile($2,Scope (0, NULL));/*execute_all($2); free_node($2);*/ }
+functions: functions statement { begin_compile($2,Scope (0, NULL),0,-1,-1,0,NULL,f);/*execute_all($2); free_node($2);*/ }
           | {$$ = NULL;}
           ;
 
@@ -221,6 +225,7 @@ data_type: INT_TYPE       { $$ = INT_TYPE; }
           | BOOL_TYPE     { $$ = BOOL_TYPE; }
           | STRING_TYPE   { $$ = STRING_TYPE; }
           | VOID_TYPE     { $$ = VOID_TYPE; }
+          | CHAR_TYPE     { $$ = CHAR_TYPE; }
           ;
 
 for_declaration:
@@ -241,6 +246,7 @@ statement_list: statement                                                   { $$
 expression: INTEGER                                          { $$ = construct_constant_node(INTEGER, INT_TYPE, $1); }
           | FLOAT                                            { $$ = construct_constant_node(FLOAT, FLOAT_TYPE, $1); }
           | STRING                                           { $$ = construct_constant_node(STRING, STRING_TYPE, $1); }
+          | CHAR                                             { $$ = construct_constant_node(CHAR, CHAR_TYPE, $1); }
           | VARIABLE                                         { $$ = construct_identifier_node($1); }
           | BOOL                                             { $$ = construct_constant_node (BOOL, BOOL_TYPE, $1); }
           | '-' expression %prec NEGATIVE                    { $$ = construct_operation_node(NEGATIVE, 1, $2); }
@@ -253,6 +259,12 @@ expression: INTEGER                                          { $$ = construct_co
           | expression '<' expression                        { $$ = construct_operation_node('<', 2, $1, $3); }
           | expression '>' expression                        { $$ = construct_operation_node('>', 2, $1, $3); }
           | expression GREATER_EQUAL expression              { $$ = construct_operation_node(GREATER_EQUAL, 2, $1, $3); }
+          | expression SHIFT_LEFT expression                 { $$ = construct_operation_node(SHIFT_LEFT, 2, $1, $3); }
+          | expression SHIFT_RIGHT expression                { $$ = construct_operation_node(SHIFT_RIGHT, 2, $1, $3); }
+          | expression BITWISE_AND expression                { $$ = construct_operation_node(BITWISE_AND, 2, $1, $3); }
+          | expression BITWISE_OR expression                 { $$ = construct_operation_node(BITWISE_OR, 2, $1, $3); }
+          | BITWISE_NOT expression                { $$ = construct_operation_node(BITWISE_NOT, 1, $2); }
+          | expression BITWISE_XOR expression                   { $$ = construct_operation_node(BITWISE_XOR, 2, $1, $3); }
           | expression LESS_EQUAL expression                 { $$ = construct_operation_node(LESS_EQUAL, 2, $1, $3); }
           | expression NOT_EQUAL expression                  { $$ = construct_operation_node(NOT_EQUAL, 2, $1, $3); }
           | expression EQUAL expression                      { $$ = construct_operation_node(EQUAL, 2, $1, $3); }
