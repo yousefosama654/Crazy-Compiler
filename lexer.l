@@ -72,7 +72,8 @@
 [a-zA-Z_][a-zA-Z0-9_]*      { 
                               yylval.sIndex = strdup(yytext);
                               return VARIABLE;  }
-  
+"++"                      { return INCREMENT; }
+"--"                      { return DECREMENT; }
 \".*\"                      {
                               yylval.stringValue = strdup(yytext);
                               return STRING;    }

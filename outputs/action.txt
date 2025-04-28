@@ -1,9 +1,20 @@
-proc func
-push (int) 3
+push (int) 0
+pop i
+L0
+push i
+push (int) 10
+lt
+jz L1
+push (int) 0
+pop a
+push (int) 0
 pop b
 push a
 push b
 add
 pop c
-endproc	
-call func
+push i
+post inc
+pop i
+jmp L0
+L1

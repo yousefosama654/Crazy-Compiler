@@ -692,6 +692,63 @@ int begin_compile(Node *p, Scope scope_level, bool flag, int brk, int cont, int 
             return op;
             break;
         }
+        case POST_INCREMENT:
+        {
+            int op = begin_compile(p->opr.op[0], scope_level, 0, brk, cont, isFunction, funcName);
+            if (op != INT_TYPE && op != FLOAT_TYPE)
+            {
+                char msg[1024];
+                sprintf(msg, "Semantic ERROR: cannot apply unary increment to %s\n", get_type(op));
+                log_errors(p->line, msg);
+                exit(1);
+            }
+            fprintf(fp, "post inc\n");
+            return op;
+            break;
+        }
+        case POST_DECREMENT:
+        {
+            int op = begin_compile(p->opr.op[0], scope_level, 0, brk, cont, isFunction, funcName);
+            if (op != INT_TYPE && op != FLOAT_TYPE)
+            {
+                char msg[1024];
+                sprintf(msg, "Semantic ERROR: cannot apply unary decrement to %s\n", get_type(op));
+                log_errors(p->line, msg);
+                exit(1);
+            }
+            fprintf(fp, "post dec\n");
+            return op;
+            break;
+        }
+        case PRE_INCREMENT:
+        {
+            int op = begin_compile(p->opr.op[0], scope_level, 0, brk, cont, isFunction, funcName);
+            if (op != INT_TYPE && op != FLOAT_TYPE)
+            {
+                char msg[1024];
+                sprintf(msg, "Semantic ERROR: cannot apply unary increment to %s\n", get_type(op));
+                log_errors(p->line, msg);
+                exit(1);
+            }
+            fprintf(fp, "pre inc\n");
+            return op;
+            break;
+        }
+        case PRE_DECREMENT:
+        {
+            int op = begin_compile(p->opr.op[0], scope_level, 0, brk, cont, isFunction, funcName);
+            if (op != INT_TYPE && op != FLOAT_TYPE)
+            {
+                char msg[1024];
+                sprintf(msg, "Semantic ERROR: cannot apply unary decrement to %s\n", get_type(op));
+                log_errors(p->line, msg);
+                exit(1);
+            }
+            fprintf(fp, "pre dec\n");
+            return op;
+            break;
+        }
+
         case '=':
         {
             int ass = begin_compile(p->opr.op[1], scope_level, 0, brk, cont, isFunction, funcName);

@@ -1,10 +1,9 @@
 Variables:
+Scope 0:
+	Name: i, Type: int, isConst: 0 isUsed: 1, isIntilized: 1
 Scope 1:
-	Name: a, Type: int, isConst: 0 isUsed: 1, isIntilized: 0
+	Name: a, Type: int, isConst: 0 isUsed: 1, isIntilized: 1
 	Name: b, Type: int, isConst: 0 isUsed: 1, isIntilized: 1
 	Name: c, Type: int, isConst: 0 isUsed: 0, isIntilized: 1
 
 Functions:
-Name: func, Return Type: unknown
-	Arg Name: a, Type: int
-	Arg Name: b, Type: int

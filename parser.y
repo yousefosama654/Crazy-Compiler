@@ -73,7 +73,8 @@ Keyword     Description
 %token PRINT                                                             /* Keyword for print */
 %token RETURN 
 %token BLOCK
-
+%token DECREMENT  INCREMENT
+%token POST_INCREMENT POST_DECREMENT PRE_INCREMENT PRE_DECREMENT
 /* to resolve dangling if else problem */
 %nonassoc IFX
 %nonassoc ELSE
@@ -258,6 +259,10 @@ expression: INTEGER                                          { $$ = construct_co
           | expression AND expression                        { $$ = construct_operation_node(AND, 2, $1, $3); }
           | expression OR expression                         { $$ = construct_operation_node(OR, 2, $1, $3); }
           | '(' expression ')'                               { $$ = $2; }         
+          |INCREMENT VARIABLE    {$$=construct_operation_node(PRE_INCREMENT, 1, construct_identifier_node($2));}
+          |VARIABLE INCREMENT     {$$=construct_operation_node(POST_INCREMENT, 1, construct_identifier_node($1));}
+          |DECREMENT VARIABLE     {$$=construct_operation_node(PRE_DECREMENT, 1, construct_identifier_node($2));}
+          |VARIABLE DECREMENT      {$$=construct_operation_node(POST_DECREMENT, 1, construct_identifier_node($1));}
 ;  /* End of Production Rules */
 
 %%
