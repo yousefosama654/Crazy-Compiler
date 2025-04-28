@@ -1,4 +1,17 @@
-push (int) 4
+push (int) 1
+pop y
+push x
+push (int) 3
+eq
+jz L1
+push (string) "yello"
+print (string)
+jmp L0
+L1
+push (int) 3
 pop x
-push (int) 4
-pop x
+push x
+print (int)
+L0
+push x
+print (int)

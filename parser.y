@@ -139,7 +139,7 @@ statement: ';'                                 { $$ = construct_operation_node('
           ;
                     
 /* Functions */
-function_declaration: FUNCTION declaration_statement'('parameter_list')' '{'statement  return_statement'}'  {$$=construct_operation_node(FUNCTION,4,$2,$4,$7,$8);}
+function_declaration: FUNCTION declaration_statement'('parameter_list')' '{'statement_list  return_statement'}'  {$$=construct_operation_node(FUNCTION,4,$2,$4,$7,$8);}
                 | FUNCTION declaration_statement'('parameter_list')' '{'return_statement'}'  {$$=construct_operation_node(FUNCTION,4,$2,$4,NULL,$7);}
              ;
                     

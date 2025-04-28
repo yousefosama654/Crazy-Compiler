@@ -1,0 +1,21 @@
+for (int x = 0; x ==1; x = x+1)
+{
+    print("inside for");
+}
+
+
+# Do Repeat Loop
+int y;
+do
+{
+      y = 1;
+    print("inside do");
+}
+until(y == 0);
+int x=9;
+while(x == 0)
+{
+    x = 1;
+    print("inside while");
+}
+

@@ -1,4 +1,0 @@
-Line 3: Semantic ERROR: No loop to Break from
-Line 6: Semantic ERROR: variable x already declared in scope 0
-
-Line 7: Semantic ERROR: Continue statement not in loop

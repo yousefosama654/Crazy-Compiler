@@ -19,7 +19,7 @@ void log_errors(int l, const char *msg)
         fprintf(ef, "Error: couldn't open error.txt for writing.\n");
         return;
     }
-    if (string(msg).find("Semantic ERROR") != string::npos)
+    if (string(msg).find("Semantic ERROR") != string::npos || string(msg).find("Warning") != string::npos)
     {
         fprintf(ef, "Line %d: %s\n", l, msg);
         return;
@@ -33,7 +33,7 @@ void log_errors(int l, const char *msg)
 
     string lineText, lastValidLine;
     int currentLine = 1, lastValidLineNumber = 0;
-    while (getline(input, lineText) && currentLine <= l)
+    while (getline(input, lineText) && currentLine < l)
     {
         const char *raw = lineText.c_str();
         while (*raw == ' ' || *raw == '\t')
@@ -109,7 +109,7 @@ void add_symbol(char *name, int type, int qualifier, Scope scope, bool isused, b
     // heck if varibable is already declared in the current scope or any parent scope
     // get all parent scopes
     Scope *current_scope = &scope;
-    while (current_scope != nullptr)
+    // while (current_scope != nullptr)
     {
         for (auto &symbol : symbol_table[current_scope->level])
         {
@@ -121,7 +121,7 @@ void add_symbol(char *name, int type, int qualifier, Scope scope, bool isused, b
                 return;
             }
         }
-        current_scope = current_scope->parent;
+        // current_scope = current_scope->parent;
     }
 
     Symbol *s = new Symbol;
@@ -185,6 +185,12 @@ int use_symbol(char *name, Scope scope, int line)
         {
             if (symbol->name == name)
             {
+                if (symbol->isInitialized == false)
+                {
+                    char msg[1024];
+                    sprintf(msg, "WArining: variable %s not initialized in scope %d\n", name, scope.level);
+                    log_errors(line, msg);
+                }
                 symbol->used = true; // mark as used
                 return symbol->type; // return type
             }
@@ -231,7 +237,6 @@ void check_if_const(char *name, Scope scope, int line)
                 char msg[1024];
                 sprintf(msg, "Semantic ERROR: variable %s is constant and cannot be modified\n", name);
                 log_errors(line, msg);
-               
             }
         }
         current_scope = current_scope->parent;
@@ -327,8 +332,6 @@ int check_function(char *name, Scope scope, int line, vector<int> arg_types)
                     char msg[1024];
                     sprintf(msg, "Semantic ERROR: function %s argument mismatch\n", name);
                     log_errors(line, msg);
-                  
-                    
                 }
                 else
                 {
@@ -340,7 +343,6 @@ int check_function(char *name, Scope scope, int line, vector<int> arg_types)
                             char msg[1024];
                             sprintf(msg, "Semantic ERROR: function %s argument type mismatch\n", name);
                             log_errors(line, msg);
-                          
                         }
                     }
                 }
@@ -353,7 +355,6 @@ int check_function(char *name, Scope scope, int line, vector<int> arg_types)
     char msg[1024];
     sprintf(msg, "Semantic ERROR: function %s not declared in scope %d\n", name, scope.level);
     log_errors(line, msg);
-    
 }
 int begin_compile(Node *p, Scope scope_level, bool flag, int brk, int cont, int isFunction, char *funcName)
 {
@@ -488,7 +489,6 @@ int begin_compile(Node *p, Scope scope_level, bool flag, int brk, int cont, int 
                 char msg[1024];
                 sprintf(msg, "Semantic ERROR: cannot apply unary NOT to %s\n", get_type(op));
                 log_errors(p->line, msg);
-               
             }
             fprintf(fp, "not\n");
             return op;
@@ -510,7 +510,6 @@ int begin_compile(Node *p, Scope scope_level, bool flag, int brk, int cont, int 
                 char msg[1024];
                 sprintf(msg, "Semantic ERROR:expression must be bool\n");
                 log_errors(p->line, msg);
-               
             }
             // if
             Scope *new_scope = new Scope(++level, &scope_level);
@@ -546,24 +545,23 @@ int begin_compile(Node *p, Scope scope_level, bool flag, int brk, int cont, int 
 
             Scope *new_scope = new Scope(++level, &scope_level);
             add_scope(new_scope);
-            begin_compile(p->opr.op[0], scope_level, 0, brk, cont, isFunction, funcName); // initialize
+            begin_compile(p->opr.op[0], *new_scope, 0, brk, cont, isFunction, funcName); // initialize
             int l1 = label++;
             fprintf(fp, "L%d\n", l1);
 
-            int cond = begin_compile(p->opr.op[1], scope_level, 0, brk, cont, isFunction, funcName); // condition
+            int cond = begin_compile(p->opr.op[1], *new_scope, 0, brk, cont, isFunction, funcName); // condition
             if (cond != BOOL_TYPE)
             {
                 log_errors(p->line, "Semantic ERROR: Condition must be of a BOOL Value");
-               
             }
 
             int l2 = label++;
             fprintf(fp, "jz L%d\n", l2);
 
-            begin_compile(p->opr.op[3], *new_scope, 0, l2, l1, isFunction, funcName);     // body
-            begin_compile(p->opr.op[2], scope_level, 0, brk, cont, isFunction, funcName); // next iter inc/dec
-            fprintf(fp, "jmp L%d\n", l1);                                                 // jump to condition
-            fprintf(fp, "L%d\n", l2);                                                     // end of loop
+            begin_compile(p->opr.op[3], *new_scope, 0, l2, l1, isFunction, funcName);    // body
+            begin_compile(p->opr.op[2], *new_scope, 0, brk, cont, isFunction, funcName); // next iter inc/dec
+            fprintf(fp, "jmp L%d\n", l1);                                                // jump to condition
+            fprintf(fp, "L%d\n", l2);                                                    // end of loop
             break;
         }
         case BREAK:
@@ -571,7 +569,7 @@ int begin_compile(Node *p, Scope scope_level, bool flag, int brk, int cont, int 
             if (brk == -1)
             {
                 log_errors(p->line, "Semantic ERROR: No loop to Break from");
-               
+
                 break;
             }
             fprintf(fp, "jmp L%d\n", brk);
@@ -685,7 +683,7 @@ int begin_compile(Node *p, Scope scope_level, bool flag, int brk, int cont, int 
             if (cont == -1)
             {
                 log_errors(p->line, "Semantic ERROR: Continue statement not in loop");
-               
+
                 break;
             }
             fprintf(fp, "jmp L%d\n", cont);
@@ -703,7 +701,6 @@ int begin_compile(Node *p, Scope scope_level, bool flag, int brk, int cont, int 
             if (cond != BOOL_TYPE)
             {
                 log_errors(p->line, "Semantic ERROR: Condition must be of a BOOL value");
-                
             }
             fprintf(fp, "jnz L%d\n", l1);
 
@@ -722,7 +719,6 @@ int begin_compile(Node *p, Scope scope_level, bool flag, int brk, int cont, int 
             if (type1 != BOOL_TYPE)
             {
                 log_errors(p->line, "semantic ERROR: Conditions must be of a BOOL Value");
-                
             }
             int l2 = label++;
             fprintf(fp, "jz L%d\n", l2);
@@ -743,7 +739,6 @@ int begin_compile(Node *p, Scope scope_level, bool flag, int brk, int cont, int 
                 char msg[1024];
                 sprintf(msg, "Semantic ERROR: cannot apply unary minus to %s\n", get_type(op));
                 log_errors(p->line, msg);
-               
             }
             fprintf(fp, "neg\n");
             return op;
@@ -757,7 +752,6 @@ int begin_compile(Node *p, Scope scope_level, bool flag, int brk, int cont, int 
                 char msg[1024];
                 sprintf(msg, "Semantic ERROR: cannot apply unary increment to %s\n", get_type(op));
                 log_errors(p->line, msg);
-               
             }
             fprintf(fp, "post inc\n");
             return op;
@@ -771,7 +765,6 @@ int begin_compile(Node *p, Scope scope_level, bool flag, int brk, int cont, int 
                 char msg[1024];
                 sprintf(msg, "Semantic ERROR: cannot apply unary decrement to %s\n", get_type(op));
                 log_errors(p->line, msg);
-                
             }
             fprintf(fp, "post dec\n");
             return op;
@@ -785,7 +778,6 @@ int begin_compile(Node *p, Scope scope_level, bool flag, int brk, int cont, int 
                 char msg[1024];
                 sprintf(msg, "Semantic ERROR: cannot apply unary increment to %s\n", get_type(op));
                 log_errors(p->line, msg);
-              
             }
             fprintf(fp, "pre inc\n");
             return op;
@@ -799,7 +791,6 @@ int begin_compile(Node *p, Scope scope_level, bool flag, int brk, int cont, int 
                 char msg[1024];
                 sprintf(msg, "Semantic ERROR: cannot apply unary decrement to %s\n", get_type(op));
                 log_errors(p->line, msg);
-               
             }
             fprintf(fp, "pre dec\n");
             return op;
@@ -829,7 +820,6 @@ int begin_compile(Node *p, Scope scope_level, bool flag, int brk, int cont, int 
                     char msg[1024];
                     sprintf(msg, "Semantic ERROR: cannot assign %s to %s\n", get_type(ass), get_type(t));
                     log_errors(p->line, msg);
-                   
                 }
                 fprintf(fp, "pop %s\n", p->opr.op[0]->dec.symbol);
                 initilize_symbol(p->opr.op[0]->dec.symbol, scope_level);
@@ -843,7 +833,6 @@ int begin_compile(Node *p, Scope scope_level, bool flag, int brk, int cont, int 
                     char msg[1024];
                     sprintf(msg, "Semantic ERROR: cannot assign %s to %s\n", get_type(ass), get_type(t));
                     log_errors(p->line, msg);
-                    
                 }
                 fprintf(fp, "pop %s\n", p->opr.op[0]->id.name);
                 initilize_symbol(p->opr.op[0]->id.name, scope_level);
@@ -861,7 +850,6 @@ int begin_compile(Node *p, Scope scope_level, bool flag, int brk, int cont, int 
                 char msg[1024];
                 sprintf(msg, "Semantic ERROR: MISMATCH Operands data types ( operand1 %s and operand2 %s)", get_type(op1), get_type(op2));
                 log_errors(p->line, msg);
-               
             }
             switch (p->opr.symbol)
             {
@@ -871,7 +859,6 @@ int begin_compile(Node *p, Scope scope_level, bool flag, int brk, int cont, int 
                     char msg[1024];
                     sprintf(msg, "cannot add operands of type %s", get_type(op1));
                     log_errors(p->line, msg);
-                   
                 }
                 fprintf(fp, "add\n");
                 return op1;
@@ -882,7 +869,6 @@ int begin_compile(Node *p, Scope scope_level, bool flag, int brk, int cont, int 
                     char msg[1024];
                     sprintf(msg, "cannot subtract operands of type %s", get_type(op1));
                     log_errors(p->line, msg);
-                   
                 }
                 fprintf(fp, "sub\n");
                 return op1;
@@ -893,7 +879,6 @@ int begin_compile(Node *p, Scope scope_level, bool flag, int brk, int cont, int 
                     char msg[1024];
                     sprintf(msg, "cannot multiply operands of type %s", get_type(op1));
                     log_errors(p->line, msg);
-                   
                 }
                 fprintf(fp, "mul\n");
                 return op1;
@@ -904,7 +889,6 @@ int begin_compile(Node *p, Scope scope_level, bool flag, int brk, int cont, int 
                     char msg[1024];
                     sprintf(msg, "cannot divide operands of type %s", get_type(op1));
                     log_errors(p->line, msg);
-                   
                 }
                 fprintf(fp, "div\n");
                 return op1;
@@ -915,7 +899,6 @@ int begin_compile(Node *p, Scope scope_level, bool flag, int brk, int cont, int 
                     char msg[1024];
                     sprintf(msg, "cannot mod operands of type %s", get_type(op1));
                     log_errors(p->line, msg);
-                   
                 }
                 fprintf(fp, "mod\n");
                 return op1;
@@ -926,7 +909,6 @@ int begin_compile(Node *p, Scope scope_level, bool flag, int brk, int cont, int 
                     char msg[1024];
                     sprintf(msg, "cannot compare operands of type %s", get_type(op1));
                     log_errors(p->line, msg);
-                   
                 }
                 fprintf(fp, "lt\n");
                 return BOOL_TYPE;
@@ -937,7 +919,6 @@ int begin_compile(Node *p, Scope scope_level, bool flag, int brk, int cont, int 
                     char msg[1024];
                     sprintf(msg, "cannot compare operands of type %s", get_type(op1));
                     log_errors(p->line, msg);
-                   
                 }
                 fprintf(fp, "gt\n");
                 return BOOL_TYPE;
@@ -949,7 +930,6 @@ int begin_compile(Node *p, Scope scope_level, bool flag, int brk, int cont, int 
                     char msg[1024];
                     sprintf(msg, "cannot compare operands of type %s", get_type(op1));
                     log_errors(p->line, msg);
-                   
                 }
                 fprintf(fp, "ge\n");
                 return BOOL_TYPE;
@@ -960,7 +940,6 @@ int begin_compile(Node *p, Scope scope_level, bool flag, int brk, int cont, int 
                     char msg[1024];
                     sprintf(msg, "cannot compare operands of type %s", get_type(op1));
                     log_errors(p->line, msg);
-                   
                 }
                 fprintf(fp, "le\n");
                 return BOOL_TYPE;
@@ -979,7 +958,6 @@ int begin_compile(Node *p, Scope scope_level, bool flag, int brk, int cont, int 
                     char msg[1024];
                     sprintf(msg, "Semantic ERROR: cannot apply AND to %s\n", get_type(op1));
                     log_errors(p->line, msg);
-                   
                 }
                 fprintf(fp, "and\n");
                 return op1;
@@ -990,7 +968,6 @@ int begin_compile(Node *p, Scope scope_level, bool flag, int brk, int cont, int 
                     char msg[1024];
                     sprintf(msg, "Semantic ERROR: cannot apply OR to %s\n", get_type(op1));
                     log_errors(p->line, msg);
-                   
                 }
                 fprintf(fp, "or\n");
                 return op1;
