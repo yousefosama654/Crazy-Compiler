@@ -1,17 +1,10 @@
-push (int) 1
-pop y
-push x
-push (int) 3
-eq
-jz L1
-push (string) "yello"
-print (string)
-jmp L0
-L1
-push (int) 3
+push (int) 5
 pop x
-push x
-print (int)
-L0
-push x
-print (int)
+push (float) 3.870000
+pop y
+push (string) " hello world "
+pop z
+push (bool) 1
+pop is
+push (int) 100
+pop re

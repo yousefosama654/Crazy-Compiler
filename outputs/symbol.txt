@@ -1,8 +1,9 @@
 Variables:
 Scope 0:
-	Name: y, Type: int, isConst: 0 isUsed: 0, isIntilized: 1
-	Name: x, Type: int, isConst: 0 isUsed: 1, isIntilized: 0
-Scope 5:
-	Name: x, Type: int, isConst: 0 isUsed: 1, isIntilized: 1
+	Name: x, Type: int, isConst: 0 isUsed: 0, isIntilized: 1
+	Name: y, Type: float, isConst: 0 isUsed: 0, isIntilized: 1
+	Name: z, Type: string, isConst: 0 isUsed: 0, isIntilized: 1
+	Name: is, Type: bool, isConst: 0 isUsed: 0, isIntilized: 1
+	Name: re, Type: int, isConst: 1 isUsed: 0, isIntilized: 1
 
 Functions:

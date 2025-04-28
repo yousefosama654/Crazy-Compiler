@@ -1,43 +1,38 @@
 #!/bin/bash
 
-# Clear the terminal
-clear
-# Enable debug mode to show each command
-set -x
+clear 
 
-# Remove old files
-rm -f compiler.exe y.tab.c y.tab.h lex.yy.c
+echo "Removing old files..."
+rm -f compiler compiler.exe y.tab.c y.tab.h lex.yy.c bison_errors.log flex_errors.log gcc_errors.log runtime_errors.log outputs/*.txt
 
-# Run Bison (capture errors)
+echo "Running Bison..."
 bison -y -d parser.y 2> bison_errors.log
 if [ $? -ne 0 ]; then
-    echo "❌ Bison failed! Check bison_errors.log"
-    cat bison_errors.log
+    echo "Bison failed!" >&2
     exit 1
 fi
 
-# Run Flex (capture errors)
+echo "Running Flex..."
 flex lexer.l 2> flex_errors.log
 if [ $? -ne 0 ]; then
-    echo "❌ Flex failed! Check flex_errors.log"
-    cat flex_errors.log
+    echo "Flex failed!" >&2
     exit 1
 fi
 
-# Compile with GCC (capture errors)
-g++ compiler.cpp  y.tab.c lex.yy.c -o compiler.exe -ll -lm 2> g++_errors.log
+echo "Compiling with GCC..."
+g++ compiler.cpp y.tab.c lex.yy.c -o compiler.exe 2> gcc_errors.log
 if [ $? -ne 0 ]; then
-    echo "❌ G++ compilation failed! Check gcc_errors.log"
-    cat g++_errors.log
+    echo "GCC compilation failed!" >&2
     exit 1
 fi
 
-# Run the parser and capture runtime errors
-./compiler.exe < input.txt 2> runtime_errors.log
+echo "Running compiler..."
+./compiler.exe
 if [ $? -ne 0 ]; then
-    echo "❌ Runtime error! Check runtime_errors.log"
-    cat runtime_errors.log
+    echo " ❌ Runtime error!" >&2
     exit 1
 fi
 
-echo "✅ Compilation completed successfully!"
+rm -f bison_errors.log flex_errors.log gcc_errors.log runtime_errors.log
+
+echo "✅ Compilation and execution completed successfully!"
