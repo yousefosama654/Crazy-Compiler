@@ -9,6 +9,3 @@ string z = " hello world ";
 #bool
 bool is = true;
 
-#constant
-const int x = 100;
-x=3;
