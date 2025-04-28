@@ -332,7 +332,7 @@ int check_function(char *name, Scope scope, int line, vector<int> arg_types)
             if (symbol->name == name)
             {
                 symbol->used = true; // mark as used
-                check arguments of function match the call and their types
+                // check arguments of function match the call and their types
                 if (symbol->argTypes.size() != arg_types.size())
                 {
                     char msg[1024];
