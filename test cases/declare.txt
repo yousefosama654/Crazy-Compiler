@@ -1,0 +1,14 @@
+
+# Declare all types
+#int
+int x = 5;
+#float
+float y = 3.87;
+#string
+string z = " hello world ";
+#bool
+bool is = true;
+
+#constant
+const int x = 100;
+x=3;

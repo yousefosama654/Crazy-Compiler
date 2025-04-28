@@ -1,7 +1,5 @@
 Variables:
 Scope 0:
-	Name: x, Type: int, isConst: 0 isUsed: 1, isIntilized: 1
-Scope 3:
-	Name: y, Type: int, isConst: 0 isUsed: 0, isIntilized: 1
+	Name: x, Type: int, isConst: 0 isUsed: 0, isIntilized: 1
 
 Functions:

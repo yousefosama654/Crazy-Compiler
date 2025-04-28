@@ -1,35 +1,4 @@
-push (int) 3
+push (int) 4
 pop x
-L2:
-push x
-push (int) 1
-	compEQ
-jz L3
-push (int) 1
+push (int) 4
 pop x
-jmp L0
-L3:
-push x
-push (int) 2
-	compEQ
-jz L4
-push (int) 2
-pop x
-push (int) 2
-pop y
-push (string) "fvd"
-print (string)
-jmp L0
-L4:
-push x
-push (int) 3
-	compEQ
- jz L1
-push (int) 3
-pop x
-jmp L0
-L1:
-push (int) 0
-pop x
-jmp L0
-L0:

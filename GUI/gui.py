@@ -16,31 +16,44 @@ class CompilerGUI:
         frame = tk.Frame(root)
         frame.pack(pady=10, expand=True, fill=tk.BOTH)
 
-        # Source Code
-        self.source_label = tk.Label(frame, text="Source Code:")
-        self.source_label.grid(row=0, column=0)
-        self.source_text = tk.Text(frame, width=80, height=15)
-        self.source_text.grid(row=1, column=0, padx=10)
+        # ==== Source Code + Line Numbers ====
+        source_frame = tk.Frame(frame)
+        source_frame.grid(row=1, column=0, padx=10)
 
-        # Quadruples
+        self.source_label = tk.Label(frame, text="Source Code:")
+        self.source_label.grid(row=0, column=0, sticky='w')
+
+        self.line_numbers = tk.Text(source_frame, width=4, height=15, padx=5, pady=5, bg="lightgrey", state='disabled')
+        self.line_numbers.pack(side=tk.LEFT, fill=tk.Y)
+
+        self.source_text = tk.Text(source_frame, width=80, height=15)
+        self.source_text.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        self.source_text.bind('<KeyRelease>', self.update_line_numbers)
+
+        self.update_line_numbers()  # initialize
+
+        # ==== Quadruples ====
         self.quad_label = tk.Label(frame, text="Quadruples:")
-        self.quad_label.grid(row=0, column=1)
+        self.quad_label.grid(row=0, column=1, sticky='w')
+
         self.quad_text = tk.Text(frame, width=30, height=10)
         self.quad_text.grid(row=1, column=1, padx=10)
 
-        # Symbol Table
+        # ==== Symbol Table ====
         self.symbol_label = tk.Label(frame, text="Symbol Table:")
-        self.symbol_label.grid(row=2, column=0)
+        self.symbol_label.grid(row=2, column=0, sticky='w')
+
         self.symbol_text = tk.Text(frame, width=80, height=8)
         self.symbol_text.grid(row=3, column=0, padx=10)
 
-        # Errors
+        # ==== Errors ====
         self.error_label = tk.Label(frame, text="Errors:")
-        self.error_label.grid(row=2, column=1)
+        self.error_label.grid(row=2, column=1, sticky='w')
+
         self.error_text = tk.Text(frame, width=30, height=8)
         self.error_text.grid(row=3, column=1, padx=10)
 
-        # Buttons
+        # ==== Buttons ====
         button_frame = tk.Frame(root)
         button_frame.pack(pady=10)
 
@@ -49,6 +62,17 @@ class CompilerGUI:
 
         self.compile_button = tk.Button(button_frame, text="Compile", command=self.compile_code)
         self.compile_button.grid(row=0, column=1, padx=10)
+
+    def update_line_numbers(self, event=None):
+        self.line_numbers.config(state='normal')
+        self.line_numbers.delete('1.0', tk.END)
+
+        num_lines = int(self.source_text.index('end-1c').split('.')[0])
+
+        line_numbers_str = "\n".join(str(i) for i in range(1, num_lines + 1))
+        self.line_numbers.insert('1.0', line_numbers_str)
+
+        self.line_numbers.config(state='disabled')
 
     def load_source(self):
         filepath = filedialog.askopenfilename(filetypes=[("Text Files", "*.txt")])
