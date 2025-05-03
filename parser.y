@@ -26,8 +26,6 @@
     extern int line;
     Scope p_current_scope (0,NULL); // Global variable to keep track of the current scope
     //----------------------------------------------
-    void print_ast(Node *node, int indent) ;
-    bool *f=new bool(false);
 %}
 /* End of Definitions */
 
@@ -115,7 +113,7 @@ Keyword     Description
 program: functions      { /*last thing to finish check_unused_variables(); */}
         ;
 
-functions: functions statement { begin_compile($2,Scope (0, NULL),0,-1,-1,0,NULL,f);/*execute_all($2); free_node($2);*/ }
+functions: functions statement { begin_compile($2,Scope (0, NULL),0,-1,-1,0,NULL);/*execute_all($2); free_node($2);*/ }
           | {$$ = NULL;}
           ;
 

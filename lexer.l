@@ -26,6 +26,7 @@
 "false"                     {/* BOOLS */ 
                               yylval.boolValue = 0;
                                return BOOL; }
+
 "const"                     { return CONST;       }
 "int"                       { return INT_TYPE;    }
 "float"                     { return FLOAT_TYPE;  }
@@ -84,6 +85,7 @@
                               return VARIABLE;  }
 "++"                      { return INCREMENT; }
 "--"                      { return DECREMENT; }
+
 \".*\"                      {
                               yylval.stringValue = strdup(yytext);
                               return STRING;    }
@@ -95,7 +97,6 @@
 \n        { line++; }
 
 "#".*                        { /*Add a Comments*/
-                               printf("%s\n", yytext); 
                                 if (yytext[yyleng - 1] == '\n') 
                                 {
                                     yylineno--;   

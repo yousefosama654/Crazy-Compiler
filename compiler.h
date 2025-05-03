@@ -114,10 +114,10 @@ typedef struct SymbolFunction
     std::string name; // function name
     int returnType;   // DataType:     {int, float, ..}
     bool used;
-    std::vector<bool>isdefault;
+    std::vector<bool*>isdefault;
     std::vector<Symbol> argTypes; // argument types
 } SymbolFunction;
 
 void print_symbol_table();
-int begin_compile(Node *p, Scope, bool flag = false, int brk = -1, int cont = -1, int isFunction = 0, char *funcName = NULL,bool *isdefault=NULL );
+int begin_compile(Node *p, Scope, bool flag = false, int brk = -1, int cont = -1, int isFunction = 0, char *funcName = NULL );
 #endif

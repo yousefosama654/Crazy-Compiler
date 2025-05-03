@@ -1,37 +1,11 @@
 Variables:
 Scope 0:
-	Name: i, Type: int, isConst: 0 isUsed: 1, isIntilized: 1
-	Name: f, Type: float, isConst: 0 isUsed: 0, isIntilized: 1
-	Name: flag1, Type: bool, isConst: 0 isUsed: 0, isIntilized: 0
-	Name: flag2, Type: bool, isConst: 0 isUsed: 0, isIntilized: 1
+	Name: n, Type: int, isConst: 0 isUsed: 0, isIntilized: 1
 Scope 1:
-	Name: a, Type: int, isConst: 0 isUsed: 1, isIntilized: 1
-	Name: b, Type: int, isConst: 0 isUsed: 1, isIntilized: 1
-	Name: c, Type: int, isConst: 0 isUsed: 1, isIntilized: 1
-Scope 2:
-	Name: base, Type: float, isConst: 0 isUsed: 1, isIntilized: 1
-	Name: exp, Type: int, isConst: 0 isUsed: 1, isIntilized: 1
-	Name: res, Type: float, isConst: 0 isUsed: 1, isIntilized: 1
-Scope 3:
-	Name: i, Type: int, isConst: 0 isUsed: 1, isIntilized: 1
-Scope 4:
-	Name: n, Type: int, isConst: 0 isUsed: 1, isIntilized: 1
-Scope 5:
-	Name: v, Type: bool, isConst: 0 isUsed: 1, isIntilized: 1
-Scope 6:
-	Name: scoped, Type: int, isConst: 0 isUsed: 0, isIntilized: 1
-Scope 7:
-	Name: scoped, Type: int, isConst: 0 isUsed: 1, isIntilized: 1
+	Name: x, Type: int, isConst: 0 isUsed: 1, isIntilized: 1
+	Name: y, Type: string, isConst: 0 isUsed: 0, isIntilized: 1
 
 Functions:
-Name: add, Return Type: int used: 1
-	Arg Name: a, Type: int isDeafult 704641024
-	Arg Name: b, Type: int isDeafult 704641024
-	Arg Name: c, Type: int isDeafult 704641024
-Name: power, Return Type: float used: 1
-	Arg Name: base, Type: float isDeafult 704641024
-	Arg Name: exp, Type: int isDeafult 704641024
-Name: is_even, Return Type: bool used: 0
-	Arg Name: n, Type: int isDeafult 704641024
-Name: toggle, Return Type: bool used: 1
-	Arg Name: v, Type: bool isDeafult 704641024
+Name: func1, Return Type: int used: 1
+	Arg Name: x, Type: int: isdeafult 0
+	Arg Name: y, Type: string: isdeafult 0

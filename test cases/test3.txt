@@ -23,7 +23,7 @@ def bool toggle(bool v=true){
     float f;
     f=power(2.0,3);
    bool flag1;
-   #flag1=toggle();
+   flag1=toggle();
     bool flag2;
     flag2=toggle(false);
 
@@ -34,10 +34,10 @@ def bool toggle(bool v=true){
             i=i+scoped;
             scoped=add(1,2,3);
            
-           # scoped=add(1,2);
-            #scoped=add(1);
+            scoped=add(1,2);
+            scoped=add(1);
         }
     }
 
-    #f=power(1.5);
+    f=power(1.5);
     

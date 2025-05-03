@@ -1,0 +1,2 @@
+Line 15: Semantic ERROR: function func1 argument type mismatch
+
