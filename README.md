@@ -9,23 +9,26 @@ This is a custom C++ compiler project built using **Lex** and **Yacc** (Flex and
 
 
 📁 Project Structure
-
-
+<h2 href="#Structure">Project Structure</h2>
+ <div> 
+  <pre>
 ├── src
-│ ├── compiler.cpp
-│ ├── compiler.h
-│ ├── lexer.l
-│ └── parser.y
+│   └── compiler.cpp
+│   └── compiler.h
+│   └── lexer.l
+│   └── parser.y
 ├── logs
-│ ├── bison_errors.log
-│ ├── flex_errors.log
-│ └── gcc_errors.log
+│   └── bison_errors.log
+│   └── flex_errors.log
+│   └── gcc_errors.log
 ├── outputs
-│ ├── action.txt
-│ ├── error.txt
-│ └── symbol.txt
+│   └── action.txt
+│   └── error.txt
+│   └── symbol.txt
 ├── GUI
-│ └── gui.py
+│   └── gui.py
 ├── run.sh
 ├── run.bat
 └── README.md
+    </pre>
+</div>
