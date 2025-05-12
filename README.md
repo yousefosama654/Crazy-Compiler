@@ -47,8 +47,13 @@ This is a custom C++ compiler project built using **Lex** and **Yacc** (Flex and
     cd compilers-project
     ```
 
-3. **Running the project**
+3. **Running the project (UNIX)**
     ```bash
     chmod +x run.sh
     ./run.sh
+    ```
+
+3. **Running the project (WINDOWS)**
+    ```bat
+    run.bat
     ```
