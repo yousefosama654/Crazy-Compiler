@@ -58,19 +58,17 @@ This is a custom C++ compiler project built using **Lex** and **Yacc** (Flex and
     run.bat
     ```
 
+## Syntax
 
-```c
-const int age = 25;
-string name = "yousef";
-if (a == 25) {
-    print (a);
-}
-else {
-    if (b == "yousef") {
-        print (b);
-    }
-}
-```
+Tha language supports the following data types:
+
+- Integer
+- Float
+- Boolean
+- String
+- Character
+
+
 
 
 ### Operators
@@ -168,11 +166,13 @@ The language supports functions with and without parameters. The language also c
 ```c
 def func_1 (){
     print("func_1");
+    return ;
 }
 def func_2(int a, int b=10) {
     print("func_2");
     print(a);
     print(b);
+    return ;
 }
 func_2(1); // function call using the default value
 ```
