@@ -1,5 +1,7 @@
 # Crazy Compiler :D
 
+<!--  Overview  -->
+## <img  align= center width =60px src="https://cdn-icons-png.flaticon.com/512/8632/8632710.png"> Overview <a id="overview"></a>
 This is a custom C++ compiler project built using **Lex** and **Yacc** (Flex and Bison), which performs:
 - Lexical analysis
 - Syntax analysis
@@ -8,8 +10,7 @@ This is a custom C++ compiler project built using **Lex** and **Yacc** (Flex and
 - Intermediate code generation (Quadruples)
 
 
-📁 Project Structure
-<h2 href="#Structure">Project Structure</h2>
+<h2 href="#Structure">📁 Project Structure</h2>
  <div> 
   <pre>
 ├── src
