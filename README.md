@@ -72,6 +72,111 @@ else {
 }
 ```
 
+
+### Operators
+
+The language supports the common operators.
+
+```c
+// Arithmetic operators
+a = b + c;
+a = b - c;
+a = b * c;
+a = b / c;
+a = b % c;
+a = b++;
+a = ++b;
+a = b--;
+a = --b;
+```
+### Conditional Statements
+
+The language supports the if-else, and switch-case statements.
+
+```c
+int a = 10;
+int b = 100;
+// if statement
+if (a <= 10) {
+    print(a);
+}
+else {
+    if (b > 100) {
+        print(b);
+    }
+    else {
+        print("else");
+    }
+}
+
+// switch-case statement
+switch (a) {
+    case 1: 
+        print("1");
+        break;
+    
+    case 2: 
+        print("2");
+        break;
+    
+    case 3: 
+        print("3");
+        break;
+    
+    default: 
+        print("default");
+        break;
+}
+
+```
+
+### Loops
+
+The language supports the while, for, and repeat-until loops.
+
+```c
+// while loop
+int a = 0;
+while (a < 20) {
+    print(a);
+    a = a + 1;
+}
+print(a);
+while (a < 20) {
+    if (a == 10) {
+        print(a);
+    }
+    a = a + 1;
+}
+// for loop
+for (int b=2 ; b<10; b++ ) {
+    print(b);
+    while (b < 10) {
+        if (b == 5) {
+            print("hi");
+            print(b);
+        }
+    }
+}
+
+```
+
+### Functions
+
+The language supports functions with and without parameters. The language also checks for parameters count and types in the function call
+
+```c
+def func_1 (){
+    print("func_1");
+}
+def func_2(int a, int b=10) {
+    print("func_2");
+    print(a);
+    print(b);
+}
+func_2(1); // function call using the default value
+```
+
 <!-- Contributors -->
 ## <img  align= center width=50px height=50px src="https://media1.giphy.com/media/WFZvB7VIXBgiz3oDXE/giphy.gif?cid=6c09b952tmewuarqtlyfot8t8i0kh6ov6vrypnwdrihlsshb&rid=giphy.gif&ct=s"> Contributors <a id = "contributors"></a>
 <!-- readme: collaborators -start -->
