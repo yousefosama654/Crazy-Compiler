@@ -58,6 +58,20 @@ This is a custom C++ compiler project built using **Lex** and **Yacc** (Flex and
     run.bat
     ```
 
+
+```c
+const int age = 25;
+string name = "yousef";
+if (a == 25) {
+    print (a);
+}
+else {
+    if (b == "yousef") {
+        print (b);
+    }
+}
+```
+
 <!-- Contributors -->
 ## <img  align= center width=50px height=50px src="https://media1.giphy.com/media/WFZvB7VIXBgiz3oDXE/giphy.gif?cid=6c09b952tmewuarqtlyfot8t8i0kh6ov6vrypnwdrihlsshb&rid=giphy.gif&ct=s"> Contributors <a id = "contributors"></a>
 <!-- readme: collaborators -start -->
