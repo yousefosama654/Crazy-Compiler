@@ -1,4 +1,4 @@
-# Crazy Compiler :D
+<h1 align='center'>Crazy Compiler :D</h1>
 
 <!--  Overview  -->
 ## <img  align= center width =60px src="https://cdn-icons-png.flaticon.com/512/8632/8632710.png"> Overview <a id="overview"></a>

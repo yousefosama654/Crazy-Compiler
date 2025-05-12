@@ -5,3 +5,4 @@ y.tab.h
 lex.yy.c
 *.log
 .vscode/
+.DS_Store
