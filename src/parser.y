@@ -202,7 +202,7 @@ for_mid_stmt:
   | expression { $$ = $1; }
   ;
 
-assignment_statement: VARIABLE '=' function_call %prec FUNC { printf("fdhf\n");$$ = construct_operation_node('=', 2, construct_identifier_node($1), $3); }
+assignment_statement: VARIABLE '=' function_call %prec FUNC { $$ = construct_operation_node('=', 2, construct_identifier_node($1), $3); }
                     | VARIABLE '=' rhs_nested_expression    { $$ = construct_operation_node('=', 2, construct_identifier_node($1), $3); }
   ;
 
